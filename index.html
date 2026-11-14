@@ -7532,7 +7532,7 @@ if(atlas.player){$('modeTag').textContent='Spielerkarte · Offline';['importButt
 buildFactionIndex();buildForceIndex();v7Init();v96Init();initSelect();setStamp();worldInit();compInit();loadShard(activeShard);e43Init();v9bInit();v911Init();v1mInit();v912Init();status('Version 10.67 · Kriegsfolgen, Ort und Umfeld');
 
 </script><script>/* Web-Fassung: Voreinstellung der Boxen beim Öffnen */
-(function(){var KEEP={showRegions:1,showCities:1,showVillages:1,v10Crests:1,v1zuShow:1,v99Show:1,relLocal:1},touched=false,done=0;
+(function(){var KEEP={showRegions:1,showCities:1,showVillages:1,v10Crests:1,v1zuShow:1,v99Show:1,relLocal:1,poiShowVerborgen:1,poiShowEntdeckt:1,poiShowAbsolviert:1,tpPub:1,tpLost:1,tpOrg:1,tpLB:1,tpOpen:1,rel_alliance:1,rel_rivalry:1,relgCiv:1,relgMil:1,wklRouteFeed:1,wklRouteVoid:1,wklRoadGeo:1,wwRelCiv:1,wwRelMil:1,wwUseTele:1,travWater:1},touched=false,done=0;
 function reach(e){for(var a=e.parentElement;a&&a!==document.body;a=a.parentElement){if(getComputedStyle(a).display==='none')return false}return true}
 function run(){if(touched&&done)return;var s=document.querySelector('aside');if(!s)return;done++;[].forEach.call(s.querySelectorAll('input[type=checkbox]'),function(e){var want=!!KEEP[e.id];if(e.checked===want||e.disabled)return;e.checked=want;try{e.dispatchEvent(new Event('input',{bubbles:true}));e.dispatchEvent(new Event('change',{bubbles:true}))}catch(x){}})}
 document.addEventListener('pointerdown',function(e){if(e.target&&e.target.closest&&e.target.closest('aside'))touched=true},true);
