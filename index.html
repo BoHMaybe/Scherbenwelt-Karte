@@ -2456,7 +2456,7 @@ function compBlockHtml(b,k,init){const d=`data-k="${k}"`,R=x=>init?compInitial(c
  case 'attr':return `<p class="comp-attr" ${d}>${v95Red(compEsc(b.x))}</p>`;
  case 'note':return `<aside class="comp-note" ${d}><b>${compEsc(b.n)}</b>${compEsc(b.x)}</aside>`;
  case 'h5':return `<h5 class="comp-h5" ${d}>${v95Red(compEsc(b.x))}</h5>`;
- case 'img':return /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(b.src||'')?`<figure class="comp-fig${b.cls==='wappen'?' wappen':''}" ${d}><img src="${b.src}" alt="${compEsc(b.alt||b.x||'')}" loading="lazy">${b.x?`<figcaption>${compEsc(b.x)}</figcaption>`:''}</figure>`:'';
+ case 'img':return /^(?:data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+|a\/[0-9a-f]{16}\.(?:webp|jpg|png|gif))$/.test(b.src||'')?`<figure class="comp-fig${b.cls==='wappen'?' wappen':''}" ${d}><img src="${b.src}" alt="${compEsc(b.alt||b.x||'')}" loading="lazy">${b.x?`<figcaption>${compEsc(b.x)}</figcaption>`:''}</figure>`:'';
  case 'tbl':return `<div class="comp-tblw${b.facts?' comp-facts':''}" ${d}><table class="comp-tbl${b.slCol!=null?' comp-tbl-sl':''}">${b.rows.map((r,i)=>`<tr>${r.map((c,j)=>i===0&&b.head?`<th${j===b.slCol?' class="comp-slc"':''}>${v95Red(compEsc(c))}</th>`:`<td${j===b.slCol?' class="comp-slc"':''}>${compLinks(compEsc(c))}</td>`).join('')}</tr>`).join('')}</table></div>`;
  case 'card':return `<div class="comp-card" ${d}><div class="comp-card-l">${v95Red(compEsc(b.x))}</div><table class="comp-tbl">${b.rows.map(r=>`<tr>${r.map(c=>`<td>${v95Red(compEsc(c))}</td>`).join('')}</tr>`).join('')}</table></div>`;
  case 'title1':return `<h1 class="comp-title1" ${d}>${compEsc(b.x)}</h1>`;
@@ -2598,7 +2598,7 @@ function v10Timeline(a,p){if(a.group!=='Geschichte')return '';
 /* ---------------------------------------------------------------- B1 · Wappen */
 const V10W=new Map();
 function v10WapIdx(a){const b=(a.pages[0]?.blocks||[]);return b.findIndex(x=>x.t==='img'&&x.cls==='wappen')}
-function v10Wap(a){if(V10W.has(a.id))return V10W.get(a.id);const i=v10WapIdx(a),b=i>=0?a.pages[0].blocks[i]:null;const o=b&&/^data:image\/(jpeg|png|webp);base64,/.test(b.src||'')?b:null;V10W.set(a.id,o);return o}
+function v10Wap(a){if(V10W.has(a.id))return V10W.get(a.id);const i=v10WapIdx(a),b=i>=0?a.pages[0].blocks[i]:null;const o=b&&/^(?:data:image\/(jpeg|png|webp);base64,|a\/[0-9a-f]{16}\.(?:webp|jpg|png|gif))/.test(b.src||'')?b:null;V10W.set(a.id,o);return o}
 function v10CrestOn(a){return !!a.faction&&v10Ok(a)&&!v9cProt(a)&&!!v10Wap(a)}
 function v10Skip(a,p,b,k){return p===a.pages[0]&&v10CrestOn(a)&&k===v10WapIdx(a)}
 let V10AM=null,V10AN=-1;function v10Art(id){const A=compArticles();if(V10AN!==A.length){V10AM=new Map(A.map(x=>[x.id,x]));V10AN=A.length}return V10AM.get(id)}
@@ -7091,7 +7091,7 @@ var V925_X=6,V925_L=8;   // Überblendung beim Wechsel / an der Schleifenstelle 
 function v923Save(){try{localStorage.setItem('atlas.v925',JSON.stringify({m:V923.muted,v:V923.vol}))}catch(e){}}
 function v925Key(id){const M=atlas&&atlas.music;if(!M)return '';if(id==='start'&&M.start)return 'start';return M[id]?id:'Welt'}
 function v925Buf(k){if(V923.buf.has(k))return V923.buf.get(k);const src=atlas.music&&atlas.music[k];if(!src)return Promise.resolve(null);
- const p=new Promise((res,rej)=>{try{const bin=atob(src.slice(src.indexOf(',')+1)),n=bin.length,u=new Uint8Array(n);for(let i=0;i<n;i++)u[i]=bin.charCodeAt(i);V923.ctx.decodeAudioData(u.buffer,res,rej)}catch(e){rej(e)}});
+ const p=!/^data:/.test(src)?fetch(src).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.arrayBuffer()}).then(b=>new Promise((res,rej)=>V923.ctx.decodeAudioData(b,res,rej))):new Promise((res,rej)=>{try{const bin=atob(src.slice(src.indexOf(',')+1)),n=bin.length,u=new Uint8Array(n);for(let i=0;i<n;i++)u[i]=bin.charCodeAt(i);V923.ctx.decodeAudioData(u.buffer,res,rej)}catch(e){rej(e)}});
  V923.buf.set(k,p);p.catch(()=>V923.buf.delete(k));return p}
 /* eine Instanz des Stücks; die nächste beginnt V925_L Sekunden vor dem Ende und blendet über */
 function v925Play(T,t,fin){const c=V923.ctx,s=c.createBufferSource(),g=c.createGain(),d=T.buf.duration,end=t+d;s.buffer=T.buf;s.connect(g);g.connect(T.gain);
