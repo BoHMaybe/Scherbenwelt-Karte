@@ -1,0 +1,7 @@
+Panoramabilder der Web-Karte
+
+Dateiname = Kennung des Ortes aus der Excel (Siedlungs-ID), z. B. BER-S112.webp
+Erlaubte Endungen: .webp (empfohlen), .jpg, .png - Großschreibung der Kennung beachten.
+Empfohlene Größe: 2000-2400 Pixel breit, 200-400 KB.
+Ein Link "Panorama ansehen" erscheint im Ortsfenster nur bei Großstädten, Städten und Bezirkszentren,
+und nur wenn hier ein passendes Bild liegt.
