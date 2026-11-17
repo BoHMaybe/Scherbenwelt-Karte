@@ -19,6 +19,7 @@ def data(path):
 html,W=data(os.path.join(SITE,'index.html'));_,O=data(SRC)
 KEEP=set(re.search(r'var KEEP=\{([^}]*)\}',html).group(1).replace(':1','').split(','))
 MIN=int(re.search(r'var MINPOP=(\d+)',html).group(1))
+TYP=json.loads(re.search(r'TYPEN=(\[[^\]]*\])',html).group(1))
 ok(all(c['id'] in {x['id'] for x in W['cities']} for c in O['cities']) and len(W['cities'])==len(O['cities']),'Orte vollständig (%d)'%len(W['cities']))
 ok(len(W['compendium']['articles'])==len(O['compendium']['articles']),'Compendium-Einträge vollständig (%d)'%len(W['compendium']['articles']))
 J=W['sl7']['journal'];ok(not any(e.get('t')=='legend' and e.get('img') for e in J['e']),'Journal: keine Bilder an Einträgen „Legendäre Kreatur“')
@@ -68,21 +69,26 @@ async def run():
                 m=await pg.evaluate("""async()=>{const w=ms=>new Promise(r=>setTimeout(r,ms));await w(2500);if(!V923.ctx&&typeof v923Init==='function')v923Init();await w(500);const ks=Object.keys(atlas.music||{});const out=[];for(const k of ks.slice(0,3)){try{const b=await v925Buf(k);out.push(b.duration>5);V923.buf.delete(k)}catch(e){out.push(false)}}return [ks.length,out]}""")
                 ok(m[0]>0 and all(m[1]),'Musik ladbar und dekodierbar (%d Stücke, %d geprüft)'%(m[0],len(m[1])))
             # Panorama mit Testbild
-            cand=await pg.evaluate("(m)=>{const c=atlas.cities.filter(c=>(c.population||0)>=m).sort((a,b)=>b.population-a.population);const s=atlas.cities.find(c=>(c.population||0)>0&&(c.population||0)<m);return [c[0].name,c[0].sourceId||c[0].id,s.name]}",MIN)
+            cand=await pg.evaluate("([m,T])=>{const c=atlas.cities.filter(c=>(c.population||0)>=m).sort((a,b)=>b.population-a.population);const s=atlas.cities.find(c=>(c.population||0)>0&&(c.population||0)<m&&!T.includes(c.type));const t=atlas.cities.filter(c=>(c.population||0)<m&&T.includes(c.type)).sort((a,b)=>(a.population||0)-(b.population||0))[0];return [c[0].name,c[0].sourceId||c[0].id,s.name,t?t.name:null,t?(t.sourceId||t.id):null]}",[MIN,TYP])
             pdir=os.path.join(SITE,'panorama');os.makedirs(pdir,exist_ok=True);tf=os.path.join(pdir,cand[1].lower()+'.webp');pre=os.path.exists(tf)
             if not any(os.path.splitext(f)[0].upper()==cand[1].upper() for f in os.listdir(pdir)):
                 from PIL import Image;Image.new('RGB',(1200,500),(40,70,50)).save(tf,'WEBP')
             else: tf=None
+            tf2=None
+            if cand[3] and not any(os.path.splitext(f)[0].upper()==cand[4].upper() for f in os.listdir(pdir)):
+                from PIL import Image;tf2=os.path.join(pdir,cand[4]+'.jpg');Image.new('RGB',(1200,500),(70,40,40)).save(tf2,'JPEG')
             try:
-                r=await pg.evaluate("""async([big,small])=>{const w=ms=>new Promise(r=>setTimeout(r,ms));const sh=nm=>atlas.cities.find(c=>c.name===nm);const go=async c=>{if($('shard').value!==c.shard){$('shard').value=c.shard;loadShard(c.shard);await w(1800)}showCard('city',c);await w(1200)};
+                r=await pg.evaluate("""async([big,small,typ])=>{const w=ms=>new Promise(r=>setTimeout(r,ms));const sh=nm=>atlas.cities.find(c=>c.name===nm);const go=async c=>{if($('shard').value!==c.shard){$('shard').value=c.shard;loadShard(c.shard);await w(1800)}showCard('city',c);await w(1200)};
                   const out={};await go(sh(big));const a=document.querySelector('#info .pano-link');out.link=!!a&&!a.classList.contains('hidden');if(!out.link)return out;
                   const c0=map.getCenter(),z0=map.getZoom();a.click();await w(800);const v=$('panoView'),R=v.getBoundingClientRect();out.voll=!v.classList.contains('hidden')&&R.width>=innerWidth-1&&R.height>=innerHeight-1&&v.querySelector('img').naturalWidth>0;
                   v.querySelector('.pano-x').click();await w(500);const c1=map.getCenter();out.zu=v.classList.contains('hidden')&&Math.abs(c1.lat-c0.lat)<1e-9&&Math.abs(c1.lng-c0.lng)<1e-9&&map.getZoom()===z0&&!$('info').classList.contains('hidden');
-                  await go(sh(small));const b=document.querySelector('#info .pano-link');out.klein=!b;return out}""",[cand[0],cand[2]])
+                  await go(sh(small));const b=document.querySelector('#info .pano-link');out.klein=!b;
+                  if(typ){await go(sh(typ));const t=document.querySelector('#info .pano-link');out.typ=!!t&&!t.classList.contains('hidden')}else out.typ=true;return out}""",[cand[0],cand[2],cand[3]])
                 ok(r.get('link'),'Panorama-Link bei %s (Testbild in Kleinschreibung)'%cand[0])
-                ok(r.get('voll'),'Panorama als Vollbild über der Karte');ok(r.get('zu'),'Schließen mit X, Karte unverändert');ok(r.get('klein'),'kein Panorama-Link unter %d Einwohnern (%s)'%(MIN,cand[2]))
+                ok(r.get('voll'),'Panorama als Vollbild über der Karte');ok(r.get('zu'),'Schließen mit X, Karte unverändert');ok(r.get('klein'),'kein Panorama-Link unter %d Einwohnern ohne Stadttyp (%s)'%(MIN,cand[2]));ok(r.get('typ'),'Panorama-Link bei Stadttyp unter %d Einwohnern (%s)'%(MIN,cand[3]))
             finally:
                 if tf and os.path.exists(tf) and not pre: os.remove(tf)
+                if tf2 and os.path.exists(tf2): os.remove(tf2)
             if name=='PC' and not FAST:
                 web=await comp(pg)
                 c2=await br.new_context(viewport={'width':1400,'height':900});po=await c2.new_page();await po.goto('file://'+SRC,timeout=900000);await po.wait_for_function(WAIT,timeout=900000);await po.wait_for_timeout(3000)
