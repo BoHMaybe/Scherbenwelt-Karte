@@ -27,7 +27,7 @@ Nicht veröffentlicht wird je der Arbeitsstand der Spielleitung, nur die exporti
 | Boxen beim Öffnen | nur die Liste `KEEP` ist angewählt, alles andere aus und einschaltbar |
 | Teleportverbindungen | sichtbar nur, wenn beide Orte besucht sind oder ein Ort „Widerstand“ hat, nie bei einem Ende „Tendenz Loyal“ oder „Imperiumstreu“; gesperrte Ziele werden aus den Daten entfernt |
 | Reisejournal | Bilder an Einträgen „Legendäre Kreatur“ werden entfernt (Fremdillustrationen), Text bleibt |
-| Panorama (`pano_inject.py`) | Link „Panorama ansehen“ im Ortsfenster bei Orten ab `PANO_MIN` Einwohnern oder mit Typ aus `PANO_TYPEN` (Großstadt, Stadt, Bezirkszentrum), sobald `panorama/<Siedlungs-ID>.webp` (auch .jpg/.jpeg/.png, auch kleingeschrieben) vorliegt; Vollbild über der Karte, Schließen mit X oder Esc |
+| Panorama (`pano_inject.py`) | Link „Panorama ansehen“ im Ortsfenster bei Orten ab `PANO_MIN` Einwohnern oder mit Typ aus `PANO_TYPEN` (Großstadt, Stadt, Bezirkszentrum, Kartenort, Landschaft / besonderer Ort), sobald `panorama/<Siedlungs-ID>.webp` (auch .jpg/.jpeg/.png, auch kleingeschrieben) vorliegt; Vollbild über der Karte, Schließen mit X oder Esc |
 
 ## Panoramabilder
 

@@ -2,7 +2,7 @@
 # Dateiname wird zuerst exakt, dann in Kleinschreibung gesucht; Endung auch in Großbuchstaben.
 import json
 PANO_MIN=50000
-PANO_TYPEN=['Großstadt','Stadt','Bezirkszentrum']   # zusätzlich unabhängig von der Einwohnerzahl
+PANO_TYPEN=['Großstadt','Stadt','Bezirkszentrum','Kartenort','Landschaft / besonderer Ort']   # zusätzlich unabhängig von der Einwohnerzahl
 PANO=r"""<style>/* Web-Fassung: Panorama */
 #info .pano-link{display:inline-block;margin:-4px 0 10px;font-family:'Cinzel',serif;font-size:17px;letter-spacing:.5px;color:#8a2414;text-decoration:underline;text-underline-offset:3px;cursor:pointer;background:none;border:none;padding:4px 0}
 #info .pano-link:hover{color:#5a160b}
