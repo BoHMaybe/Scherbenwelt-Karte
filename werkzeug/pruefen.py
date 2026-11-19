@@ -86,6 +86,18 @@ async def run():
                   if(typ){await go(sh(typ));const t=document.querySelector('#info .pano-link');out.typ=!!t&&!t.classList.contains('hidden')}else out.typ=true;return out}""",[cand[0],cand[2],cand[3]])
                 ok(r.get('link'),'Panorama-Link bei %s (Testbild in Kleinschreibung)'%cand[0])
                 ok(r.get('voll'),'Panorama als Vollbild über der Karte');ok(r.get('zu'),'Schließen mit X, Karte unverändert');ok(r.get('klein'),'kein Panorama-Link unter %d Einwohnern ohne Stadttyp (%s)'%(MIN,cand[2]));ok(r.get('typ'),'Panorama-Link bei Stadttyp unter %d Einwohnern (%s)'%(MIN,cand[3]))
+                # Panorama bei Fundorten (POI-ID als Dateiname)
+                pc=await pg.evaluate("()=>{const p=(atlas.pois||[]).filter(p=>p.xy);return p.length?[p[0].id,p[0].name,p.length>1?p[1].id:null]:null}")
+                if pc and not any(os.path.splitext(f)[0].upper()==pc[0].upper() for f in os.listdir(pdir)):
+                    from PIL import Image;tf3=os.path.join(pdir,pc[0].lower()+'.webp');Image.new('RGB',(1200,500),(40,40,80)).save(tf3,'WEBP')
+                    try:
+                        q=await pg.evaluate("""async([i1,i2])=>{const w=ms=>new Promise(r=>setTimeout(r,ms));const go=async p=>{if($('shard').value!==p.shard){$('shard').value=p.shard;loadShard(p.shard);await w(1800)}showCard('poi',p);await w(1200)};
+                          const P=atlas.pois,out={};await go(P.find(p=>p.id===i1));const a=document.querySelector('#info .pano-link');out.link=!!a&&!a.classList.contains('hidden');
+                          if(out.link){a.click();await w(800);const v=$('panoView');out.voll=!v.classList.contains('hidden')&&v.querySelector('img').naturalWidth>0;v.querySelector('.pano-x').click();await w(400)}
+                          if(i2){await go(P.find(p=>p.id===i2));const b=document.querySelector('#info .pano-link');out.ohne=!b||b.classList.contains('hidden')}else out.ohne=true;return out}""",[pc[0],pc[2]])
+                        ok(q.get('link') and q.get('voll'),'Panorama-Link und Vollbild bei Fundort %s (%s)'%(pc[1],pc[0]));ok(q.get('ohne'),'kein Panorama-Link bei Fundort ohne Bild')
+                    finally:
+                        if os.path.exists(tf3): os.remove(tf3)
             finally:
                 if tf and os.path.exists(tf) and not pre: os.remove(tf)
                 if tf2 and os.path.exists(tf2): os.remove(tf2)

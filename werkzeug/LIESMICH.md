@@ -27,7 +27,7 @@ Nicht veröffentlicht wird je der Arbeitsstand der Spielleitung, nur die exporti
 | Boxen beim Öffnen | nur die Liste `KEEP` ist angewählt, alles andere aus und einschaltbar |
 | Teleportverbindungen | sichtbar nur, wenn beide Orte besucht sind oder ein Ort „Widerstand“ hat, nie bei einem Ende „Tendenz Loyal“ oder „Imperiumstreu“; gesperrte Ziele werden aus den Daten entfernt |
 | Reisejournal | Bilder an Einträgen „Legendäre Kreatur“ werden entfernt (Fremdillustrationen), Text bleibt |
-| Panorama (`pano_inject.py`) | Link „Panorama ansehen“ im Ortsfenster bei Orten ab `PANO_MIN` Einwohnern oder mit Typ aus `PANO_TYPEN` (Großstadt, Stadt, Bezirkszentrum, Kartenort, Landschaft / besonderer Ort), sobald `panorama/<Siedlungs-ID>.webp` (auch .jpg/.jpeg/.png, auch kleingeschrieben) vorliegt; Vollbild über der Karte, Schließen mit X oder Esc |
+| Panorama (`pano_inject.py`) | Link „Panorama ansehen“ im Ortsfenster bei Orten ab `PANO_MIN` Einwohnern oder mit Typ aus `PANO_TYPEN` (Großstadt, Stadt, Bezirkszentrum, Kartenort, Landschaft / besonderer Ort), sobald `panorama/<Siedlungs-ID>.webp` (auch .jpg/.jpeg/.png, auch kleingeschrieben) vorliegt; ebenso im Fundortfenster der entdeckten Fundorte mit `panorama/<POI-ID>.webp` (z. B. `POI-DSC-026.webp`); Vollbild über der Karte, Schließen mit X oder Esc |
 
 ## Panoramabilder
 
@@ -35,8 +35,8 @@ Liegen dauerhaft im Zweig `gh-pages` im Ordner `panorama/` und werden von `ueber
 
 ```
 python3 karte/werkzeug/panorama_bild.py  <Bild> <Siedlungs-ID> seite       # verkleinert auf 2400 px, WebP 200-400 KB
-python3 karte/werkzeug/panorama_liste.py <Spielerkarte.html> liste.csv seite # Orte mit Dateinamen und Bildstand
+python3 karte/werkzeug/panorama_liste.py <Spielerkarte.html> liste.csv seite # Orte und Fundorte mit Dateinamen und Bildstand
 ```
 
-Dateinamen in Großbuchstaben ablegen (z. B. `BER-S112.webp`). Neue Bilder wirken sofort, ohne Karten-Update.
+Dateinamen in Großbuchstaben ablegen (z. B. `BER-S112.webp`, Fundorte `POI-BER-012.webp`). Neue Bilder wirken sofort, ohne Karten-Update.
 Das Repository ist öffentlich: nur eigene oder KI-erzeugte Bilder, keine Bilder geheimer Orte.

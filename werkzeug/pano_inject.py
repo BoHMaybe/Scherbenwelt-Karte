@@ -1,4 +1,5 @@
 # Panorama (nur Web-Fassung): Link im Ortsfenster für Orte ab PANO_MIN Einwohnern oder mit Typ aus PANO_TYPEN; Bild aus panorama/<Siedlungs-ID>.<webp|jpg|jpeg|png>
+# Fundorte (POI, nur die in der Spielerdatei enthaltenen, also entdeckten): Link im Fundortfenster, Bild aus panorama/<POI-ID>.<webp|jpg|jpeg|png>
 # Dateiname wird zuerst exakt, dann in Kleinschreibung gesucht; Endung auch in Großbuchstaben.
 import json
 PANO_MIN=50000
@@ -23,9 +24,9 @@ function close(){var v=document.getElementById('panoView');if(!v||v.classList.co
 window.panoClose=close;
 document.addEventListener('keydown',function(e){if(e.key==='Escape'){var v=document.getElementById('panoView');if(v&&!v.classList.contains('hidden')){e.preventDefault();e.stopPropagation();close()}}},true);
 document.addEventListener('fullscreenchange',function(){var v=document.getElementById('panoView');if(v&&!v.classList.contains('hidden')&&document.fullscreenElement!==v)close()});
-function add(c){var box=document.getElementById('info');if(!box||!c||!((c.population||0)>=MINPOP||TYPEN.indexOf(c.type)>=0))return;var h=box.querySelector('h2');if(!h||box.querySelector('.pano-link'))return;var id=c.sourceId||c.id,a=document.createElement('button');a.type='button';a.className='pano-link hidden';a.textContent='Panorama ansehen';a.addEventListener('click',function(e){e.preventDefault();if(FOUND[id])open(FOUND[id],c.name)});h.insertAdjacentElement('afterend',a);
+function add(c,kind){var box=document.getElementById('info'),poi=kind==='poi';if(!box||!c||!(poi||(c.population||0)>=MINPOP||TYPEN.indexOf(c.type)>=0))return;var h=box.querySelector('h2');if(!h||box.querySelector('.pano-link'))return;var id=poi?c.id:(c.sourceId||c.id),a=document.createElement('button');a.type='button';a.className='pano-link hidden';a.textContent='Panorama ansehen';a.addEventListener('click',function(e){e.preventDefault();if(FOUND[id])open(FOUND[id],c.name)});h.insertAdjacentElement('afterend',a);
  probe(id,function(u){if(u&&a.isConnected)a.classList.remove('hidden')})}
-function hook(){if(typeof showCard!=='function'){setTimeout(hook,200);return}var _s=showCard;showCard=function(kind,obj){var r=_s.apply(this,arguments);try{if(kind==='city')add(obj)}catch(e){console.warn('Panorama',e)}return r}}
+function hook(){if(typeof showCard!=='function'){setTimeout(hook,200);return}var _s=showCard;showCard=function(kind,obj){var r=_s.apply(this,arguments);try{if(kind==='city'||kind==='poi')add(obj,kind)}catch(e){console.warn('Panorama',e)}return r}}
 hook()})();</script>"""
 PANO=PANO.replace('__PANO_MIN__',str(int(PANO_MIN))).replace('__PANO_TYPEN__',json.dumps(PANO_TYPEN,ensure_ascii=False));assert '__PANO' not in PANO
 _i=tail.rfind('</body>');assert _i>0
