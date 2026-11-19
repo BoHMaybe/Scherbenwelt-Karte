@@ -5,3 +5,5 @@ Erlaubte Endungen: .webp (empfohlen), .jpg, .jpeg, .png - Kennung bevorzugt in G
 Empfohlene Größe: 2000-2400 Pixel breit, 200-400 KB.
 Ein Link "Panorama ansehen" erscheint im Ortsfenster bei Orten ab 50.000 Einwohnern sowie bei allen Großstädten, Städten, Bezirkszentren, Kartenorten und Landschaften / besonderen Orten,
 und nur wenn hier ein passendes Bild liegt.
+
+Fundorte: Dateiname = Kennung des Fundorts (POI-ID), z. B. POI-DSC-026.webp. Der Link "Panorama ansehen" erscheint im Fundortfenster der entdeckten Fundorte, sobald hier ein passendes Bild liegt.
