@@ -1,0 +1,5 @@
+Darstellungsbilder der Heere und Flotten (nur Web-Fassung)
+
+Dateiname = Kennung des Heeres oder der Flotte in der Visu, in Großbuchstaben, z. B. FH-S008.webp (Söldnerkompanie), FF-0139.webp (Söldnerbund der Leere), FH-0503.webp (Lokales Heer), VB-002.webp (Heeresverband), CU-A01.webp (eigene Truppe).
+Der Link "Darstellung" erscheint im Heer- bzw. Flottenfenster der Karte und im Compendium (Söldnereintrag oder Seite der Machtgruppe), sobald hier ein passendes Bild liegt. Beide Stellen öffnen dieselbe Datei im Vollbild.
+Aufbereiten: python3 karte/werkzeug/panorama_bild.py <Bild> <Kennung> <gh-pages> 2400 darstellung
