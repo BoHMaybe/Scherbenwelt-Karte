@@ -2,7 +2,7 @@
 """Gebaute Web-Fassung in den Zweig gh-pages übernehmen.
 Aufruf: python3 uebernehmen.py <gebauter Ordner> <Arbeitskopie gh-pages>
 Übernimmt index.html, .nojekyll und den Ordner a/ (veraltete Dateien in a/ werden gelöscht).
-Der Ordner panorama/ und alle übrigen Dateien bleiben unberührt."""
+Die Ordner panorama/ und darstellung/ und alle übrigen Dateien bleiben unberührt."""
 import os,sys,shutil,filecmp
 SRC,DST=sys.argv[1],sys.argv[2]
 assert os.path.isfile(os.path.join(SRC,'index.html')),'index.html fehlt im gebauten Ordner'
@@ -14,4 +14,4 @@ for f in new-old: shutil.copy2(os.path.join(sa,f),os.path.join(da,f));add+=1
 for f in old-new: os.remove(os.path.join(da,f));rm+=1
 for f in new&old:
     if not filecmp.cmp(os.path.join(sa,f),os.path.join(da,f),shallow=False): shutil.copy2(os.path.join(sa,f),os.path.join(da,f));add+=1
-print('übernommen: index.html, a/ +%d -%d, panorama/ unberührt'%(add,rm))
+print('übernommen: index.html, a/ +%d -%d, panorama/ und darstellung/ unberührt'%(add,rm))

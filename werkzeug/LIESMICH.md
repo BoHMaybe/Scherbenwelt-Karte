@@ -28,6 +28,7 @@ Nicht veröffentlicht wird je der Arbeitsstand der Spielleitung, nur die exporti
 | Teleportverbindungen | sichtbar nur, wenn beide Orte besucht sind oder ein Ort „Widerstand“ hat, nie bei einem Ende „Tendenz Loyal“ oder „Imperiumstreu“; gesperrte Ziele werden aus den Daten entfernt |
 | Reisejournal | Bilder an Einträgen „Legendäre Kreatur“ werden entfernt (Fremdillustrationen), Text bleibt |
 | Panorama (`pano_inject.py`) | Link „Panorama ansehen“ im Ortsfenster bei Orten ab `PANO_MIN` Einwohnern oder mit Typ aus `PANO_TYPEN` (Großstadt, Stadt, Bezirkszentrum, Kartenort, Landschaft / besonderer Ort), sobald `panorama/<Siedlungs-ID>.webp` (auch .jpg/.jpeg/.png, auch kleingeschrieben) vorliegt; ebenso im Fundortfenster der entdeckten Fundorte mit `panorama/<POI-ID>.webp` (z. B. `POI-DSC-026.webp`); Vollbild über der Karte, Schließen mit X oder Esc |
+| Darstellung (`pano_inject.py`) | Link „Darstellung“ im Heer- und Flottenfenster der Karte und im Compendium (Söldnereintrag: zugehöriges Söldnerheer bzw. -flotte; Machtgruppeneintrag: alle Heere und Flotten der Spielerdatei mit dieser Machtgruppe als Träger, bei Heeresverbänden jedes beteiligte Haus), sobald `darstellung/<Kennung>.webp` vorliegt (z. B. `FH-S008`, `FF-0139`, `FH-0503`, `VB-002`, `CU-A01`); Karte und Compendium öffnen dieselbe Datei im Vollbild |
 
 ## Panoramabilder
 
@@ -40,3 +41,19 @@ python3 karte/werkzeug/panorama_liste.py <Spielerkarte.html> liste.csv seite # O
 
 Dateinamen in Großbuchstaben ablegen (z. B. `BER-S112.webp`, Fundorte `POI-BER-012.webp`). Neue Bilder wirken sofort, ohne Karten-Update.
 Das Repository ist öffentlich: nur eigene oder KI-erzeugte Bilder, keine Bilder geheimer Orte.
+
+## Darstellungsbilder (Heere und Flotten)
+
+Liegen dauerhaft im Zweig `gh-pages` im Ordner `darstellung/` (nur online, nicht im Arbeitsstand) und werden von `uebernehmen.py` nie verändert.
+
+```
+python3 karte/werkzeug/panorama_bild.py <Bild> <Kennung> seite 2400 darstellung   # z. B. FH-S008, FF-0139, VB-002
+```
+
+## Bilder im Compendium des Arbeitsstands
+
+```
+python3 karte/werkzeug/compendium_bilder.py <Arbeitsstand.html> <Bildordner> <Ausgabe.html>
+```
+
+Zuordnung über den Dateinamen: `TITEL-<Kürzel>` (Titelbild im Geschichtseintrag der Scherbe), `bau-<…>` (Konzeptzeichnung als erster Block im Gebäudeeintrag, wie bei den Schiffen), `legion-<…>-ausruestung` / `-sondergeraet` und `armada-<…>-ausruestung` (am Anfang des Abschnitts „Ausrüstung“; dort für Spieler geschwärzt bis zur Freigabe im Eintrag). Gespeichert wird über den Speicherweg der App; ein erneuter Lauf mit gleichem Dateinamen ersetzt das Bild. Danach Spielerexport und Web-Fassung wie oben.

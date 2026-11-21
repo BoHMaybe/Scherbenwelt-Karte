@@ -58,7 +58,7 @@ async def run():
             print('Browser',name,flush=True)
             ctx=await br.new_context(**kw);pg=await ctx.new_page();errs=[];nf=[]
             pg.on('pageerror',lambda e:errs.append(str(e)[:200]))
-            pg.on('response',lambda r:r.status>=400 and '/panorama/' not in r.url and nf.append('%d %s'%(r.status,r.url[-60:])))
+            pg.on('response',lambda r:r.status>=400 and '/panorama/' not in r.url and '/darstellung/' not in r.url and nf.append('%d %s'%(r.status,r.url[-60:])))
             await pg.goto(URL,timeout=600000);await pg.wait_for_function(WAIT,timeout=600000);await pg.wait_for_timeout(3500)
             st=await pg.evaluate("()=>[...document.querySelectorAll('aside input[type=checkbox]')].filter(e=>!e.disabled).map(e=>[e.id,e.checked])")
             wrong=[i for i,c in st if c!=(i in KEEP)];ok(not wrong,'Boxen-Voreinstellung (%d Boxen)'%len(st)+(' – abweichend: %s'%wrong[:8] if wrong else ''))
@@ -98,6 +98,31 @@ async def run():
                         ok(q.get('link') and q.get('voll'),'Panorama-Link und Vollbild bei Fundort %s (%s)'%(pc[1],pc[0]));ok(q.get('ohne'),'kein Panorama-Link bei Fundort ohne Bild')
                     finally:
                         if os.path.exists(tf3): os.remove(tf3)
+                # Darstellung bei Heeren und Flotten: Karte, Machtgruppe und Söldnereintrag greifen auf dieselbe Datei zu
+                dc=await pg.evaluate("""()=>{const A=compArticles();const mg=A.filter(a=>/^Machtgruppen\\//.test(a.group||'')&&a.factionName);let hit=null;
+                  for(const x of atlas.armies||[]){const m=mg.find(a=>a.factionName===x.authority&&a.group.split('/')[1]===x.shard);if(m){hit=[x.id,x.name,m.id];break}}
+                  const so=A.filter(a=>/^sold-fh-/i.test(a.id));return {hit,s1:so[0]?so[0].id:null,s2:so[1]?so[1].id:null}}""")
+                ddir=os.path.join(SITE,'darstellung');neu=not os.path.isdir(ddir);os.makedirs(ddir,exist_ok=True);tfd=[]
+                try:
+                    from PIL import Image
+                    if dc['hit']:tfd.append(os.path.join(ddir,dc['hit'][0].lower()+'.webp'));Image.new('RGB',(900,600),(80,60,30)).save(tfd[-1],'WEBP')
+                    if dc['s1']:tfd.append(os.path.join(ddir,'FH-'+dc['s1'].split('-')[-1].upper()+'.webp'));Image.new('RGB',(900,600),(30,60,80)).save(tfd[-1],'WEBP')
+                    q=await pg.evaluate("""async([H,s1,s2])=>{const w=ms=>new Promise(r=>setTimeout(r,ms)),out={},vis=e=>!!e&&!e.classList.contains('hidden');
+                      if(H){const x=atlas.armies.find(a=>a.id===H[0]);if($('shard').value!==x.shard){$('shard').value=x.shard;loadShard(x.shard);await w(1800)}showCard('army',x);await w(1200);
+                        const a=document.querySelector('#info .darst-link');out.heer=vis(a)&&a.textContent==='Darstellung';if(out.heer){a.click();await w(800);const v=$('panoView');out.voll=!v.classList.contains('hidden')&&v.querySelector('img').naturalWidth>0;out.src1=v.querySelector('img').getAttribute('src');v.querySelector('.pano-x').click();await w(400)}
+                        compOpenArticle(H[2]);await w(1500);const b=document.querySelector('.comp-head .darst-link[data-darst="'+H[0]+'"]');out.mg=vis(b);if(out.mg){b.click();await w(800);const v=$('panoView');out.src2=v.querySelector('img').getAttribute('src');v.querySelector('.pano-x').click();await w(400)}}
+                      if(s1){compOpenArticle(s1);await w(1500);out.sold=vis(document.querySelector('.comp-head .darst-link'))}
+                      if(s2){compOpenArticle(s2);await w(1500);const c=document.querySelector('.comp-head .darst-link');out.ohne=!vis(c)}else out.ohne=true;
+                      setAppTab('map');await w(500);return out}""",[dc['hit'],dc['s1'],dc['s2']])
+                    if dc['hit']:
+                        ok(q.get('heer') and q.get('voll'),'Darstellung im Heerfenster mit Vollbild (%s, %s)'%(dc['hit'][1],dc['hit'][0]))
+                        ok(q.get('mg') and q.get('src1')==q.get('src2'),'Darstellung im Machtgruppeneintrag, dieselbe Bilddatei wie im Heerfenster')
+                    if dc['s1']: ok(q.get('sold'),'Darstellung im Söldnereintrag (%s)'%dc['s1'])
+                    ok(q.get('ohne'),'keine Darstellung ohne Bild')
+                finally:
+                    for f in tfd:
+                        if os.path.exists(f): os.remove(f)
+                    if neu and os.path.isdir(ddir) and not os.listdir(ddir): os.rmdir(ddir)
             finally:
                 if tf and os.path.exists(tf) and not pre: os.remove(tf)
                 if tf2 and os.path.exists(tf2): os.remove(tf2)
