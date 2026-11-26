@@ -96,7 +96,8 @@ exec(open(os.path.join(os.path.dirname(os.path.abspath(__file__)),'pano_inject.p
 html=head+raw2+tail
 assert 'slbild:' not in raw2,'SL-exklusiver Bildverweis in der Spielerkarte'
 BO=os.path.join(OUT,'bilder');os.makedirs(BO,exist_ok=True);_bm=[]
-for f in sorted(set(re.findall(r'bilder/([0-9a-f]{16}\.(?:webp|jpg|png|gif))',raw2))):
+if BILD=='-': print('Bilderordner übersprungen (-)')
+for f in (sorted(set(re.findall(r'bilder/([0-9a-f]{16}\.(?:webp|jpg|png|gif))',raw2))) if BILD!='-' else []):
     q=os.path.join(BILD,f)
     if os.path.isfile(q): shutil.copy2(q,os.path.join(BO,f))
     else: _bm.append(f)

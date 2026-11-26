@@ -1,0 +1,49 @@
+name: Veröffentlichen
+# Scherbenwelt Atlas · V10.96: Online-Änderungen der Spielleitung für die Spieler veröffentlichen.
+# Startet automatisch, wenn die SL-Fassung online/veroeffentlichen.json schreibt (ca. 2 Minuten nach der letzten Änderung).
+on:
+  push:
+    branches: [main]
+    paths: ['online/veroeffentlichen.json']
+  workflow_dispatch:
+concurrency:
+  group: veroeffentlichen
+  cancel-in-progress: false
+permissions:
+  contents: write
+jobs:
+  veroeffentlichen:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            master
+            online
+            daten
+            steuerung
+            werkzeug
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Playwright-Browser zwischenspeichern
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: pw-1.47.0-chromium
+      - name: Werkzeuge
+        run: |
+          pip install --quiet playwright==1.47.0 pillow
+          python -m playwright install --with-deps chromium
+      - name: Veröffentlichen
+        run: python werkzeug/online_veroeffentlichen.py "$RUNNER_TEMP/sw"
+      - name: Ergebnis hochladen
+        run: |
+          git config user.name "Scherbenwelt Atlas"
+          git config user.email "atlas@scherbenwelt.invalid"
+          git add online/status.json online/spieler-ops.json steuerung/stand.json || true
+          if git diff --cached --quiet; then echo "Nichts zu übernehmen"; exit 0; fi
+          git commit -q -m "Veröffentlicht: $(python -c "import json;s=json.load(open('online/status.json'));print('bis',s.get('verarbeitet'),'ok' if s.get('ok') else 'FEHLER')")"
+          for i in 1 2 3 4 5; do git pull -q --rebase origin main && git push -q origin HEAD:main && exit 0; sleep 5; done
+          exit 1

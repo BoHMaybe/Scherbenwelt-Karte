@@ -113,3 +113,12 @@ Backup der Webseite vor der Umstellung: privates Repo scherbenwelt-sl, Zweig `ba
 - Online: Spieler speichern in `BoHMaybe/scherbenwelt-<name>/boegen/schiffe.json` (Token „eigen“), automatisch 15 s nach Änderung bzw. „Jetzt speichern“, beim Verlassen/Ausblenden sofort. Konflikt (anderes Gerät): letzte Speicherung gewinnt.
 - SL: Spielerliste aus `scherbenwelt-sl/steuerung/spieler.json` (bearbeitbar); „Online-Stand übernehmen“ schreibt `atlas.online.schiffe` in den Arbeitsstand (nicht in die Spielerdatei).
 - `test_online.py`: Ablauf gegen nachgebautes GitHub (Spieler anlegen/speichern/neu laden/löschen, SL bearbeiten mit Konflikt, Übernahme).
+
+## V10.96 · Automatischer Online-Abgleich (Stufe 4)
+
+- `online/apply96.py <v10_95.html> online <v10_96.html>`: Hook (`ops.js` + `hook1096.js`) vor dem Atlas-Programm, `patch1096.js` am Ende, `[data-sw]` beim Speichern entfernt, `online`/`onlineImport` nie in der Spielerdatei.
+- SL-Fassung im Web: Änderungen am Atlas werden per Vergleich je Hauptschlüssel erkannt (Ereignisse, `v7Dirty`, `status()`), nach 10 s in `scherbenwelt-sl/online/aenderungen.json` gespeichert (Basis = SHA-1 des Atlas-Datentexts des Masters), 2 min nach der letzten Änderung `online/veroeffentlichen.json` → GitHub-Ablauf `.github/workflows/veroeffentlichen.yml`.
+- Ablauf: `werkzeug/online_veroeffentlichen.py` setzt `master/teile` zusammen, wendet die Änderungen an, exportiert (exp.py) und baut (build.py, Bilderordner „-“), schreibt `online/spieler-ops.json` (Unterschied zu `daten/spieler-basis.json.gz`), `steuerung/stand.json` (spieler_v) und `online/status.json`.
+- Anmeldeseite: SL lädt `online/aenderungen.json`, Spieler `online/spieler-ops.json` und wenden sie beim Laden an (`window.SW_OPS`).
+- Vor jedem Hochladen durch Claude: `online/online_uebernehmen.py <Arbeitsstand> <scherbenwelt-sl> <aus.html>` (Arbeitsstand gewinnt), dann `SW_OPS_UEBERNOMMEN=1 python3 login_bauen.py … live`.
+- Tests: `online/test_flow.py` (Phasen sl, spieler, lokal; vorher `online_veroeffentlichen.py` im SL-Ordner ausführen).

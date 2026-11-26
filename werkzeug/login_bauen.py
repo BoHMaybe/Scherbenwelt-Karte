@@ -65,10 +65,49 @@ def slweb(b):
 arbw=slweb(arb)
 sgz=gzip.compress(arbw,6,mtime=0);T=2*2**20;n=0
 for i in range(0,len(sgz),T): open(os.path.join(TD,'a%03d.bin'%n),'wb').write(sgz[i:i+T]);n+=1
-json.dump({'teile':n,'groesse':len(sgz),'sha1':hashlib.sha1(sgz).hexdigest(),'stand':hashlib.sha1(arbw).hexdigest()[:12],'mb':round(len(arbw)/2**20,1)},open(os.path.join(TD,'index.json'),'w'))
+# V10.96: Kennung des Master-Arbeitsstands (SHA-1 des Atlas-Datentexts) – Basis der Online-Änderungen
+_am=re.search(r'(<script id="atlas-data" type="application/json">)(.*?)(</script>)',arb.decode('utf-8'),re.S)
+basis=hashlib.sha1(_am.group(2).encode('utf-8')).hexdigest()[:12]
+json.dump({'teile':n,'groesse':len(sgz),'sha1':hashlib.sha1(sgz).hexdigest(),'stand':hashlib.sha1(arbw).hexdigest()[:12],'mb':round(len(arbw)/2**20,1),'basis':basis},open(os.path.join(TD,'index.json'),'w'))
+# Master-Arbeitsstand (vollständig, für den Veröffentlichungs-Ablauf auf GitHub)
+MD=os.path.join(SL,'master','teile');os.makedirs(MD,exist_ok=True)
+_mi=None
+try: _mi=json.load(open(os.path.join(MD,'index.json')))
+except Exception: pass
+if not _mi or _mi.get('basis')!=basis:
+    for f in os.listdir(MD): os.remove(os.path.join(MD,f))
+    mgz=gzip.compress(arb,6,mtime=0);mn=0
+    for i in range(0,len(mgz),T): open(os.path.join(MD,'a%03d.bin'%mn),'wb').write(mgz[i:i+T]);mn+=1
+    json.dump({'teile':mn,'groesse':len(mgz),'sha1':hashlib.sha1(mgz).hexdigest(),'basis':basis},open(os.path.join(MD,'index.json'),'w'))
+    print('Master-Arbeitsstand: %.1f MB in %d Teilen · Basis %s'%(len(mgz)/2**20,mn,basis))
+# Spielerfassung als Vergleichsbasis für die Veröffentlichungen (privat)
+_wm=re.search(r'(<script id="atlas-data" type="application/json">)(.*?)(</script>)',web.decode('utf-8'),re.S)
+os.makedirs(os.path.join(SL,'daten'),exist_ok=True)
+with gzip.open(os.path.join(SL,'daten','spieler-basis.json.gz'),'wt',encoding='utf-8',compresslevel=6) as _f: _f.write('{"stand":'+json.dumps(stand)+',"atlas":'+_wm.group(2).replace('\\u003c','<')+'}')
+json.load(gzip.open(os.path.join(SL,'daten','spieler-basis.json.gz'),'rt',encoding='utf-8'))
+# Online-Dateien: bei neuer Basis zurücksetzen (offene Änderungen vorher mit online_uebernehmen.py in den Arbeitsstand holen!)
+OD=os.path.join(SL,'online');os.makedirs(OD,exist_ok=True)
+def _rj(f,d):
+    try: return json.load(open(os.path.join(OD,f),encoding='utf-8'))
+    except Exception: return d
+_A=_rj('aenderungen.json',{});seq=_A.get('seq',0)
+if _A.get('basis')!=basis:
+    assert not _A.get('ops') or os.environ.get('SW_OPS_UEBERNOMMEN')=='1',('Offene Online-Änderungen zu Basis',_A.get('basis'),len(_A.get('ops') or []),'zuerst online_uebernehmen.py, dann SW_OPS_UEBERNOMMEN=1')
+    json.dump({'basis':basis,'seq':seq,'zeit':None,'ops':[]},open(os.path.join(OD,'aenderungen.json'),'w'))
+    json.dump({'basis':basis,'verarbeitet':seq,'ok':True,'meldung':'','zeit':None},open(os.path.join(OD,'status.json'),'w'),indent=1)
+_P=_rj('spieler-ops.json',{})
+if _P.get('basis')!=stand: json.dump({'basis':stand,'v':seq,'ops':[]},open(os.path.join(OD,'spieler-ops.json'),'w'))
+if not os.path.exists(os.path.join(OD,'veroeffentlichen.json')): json.dump({'seq':0},open(os.path.join(OD,'veroeffentlichen.json'),'w'))
+# Werkzeuge und Ablauf für die automatische Veröffentlichung ins private Repo
+import shutil
+WD=os.path.join(SL,'werkzeug');os.makedirs(WD,exist_ok=True)
+for f in ('ops.py','online_veroeffentlichen.py','exp.py'): shutil.copy2(os.path.join(HERE,'online',f),os.path.join(WD,f))
+for f in ('build.py','pano_inject.py'): shutil.copy2(os.path.join(HERE,f),os.path.join(WD,f))
+os.makedirs(os.path.join(SL,'.github','workflows'),exist_ok=True)
+shutil.copy2(os.path.join(HERE,'online','veroeffentlichen.yml'),os.path.join(SL,'.github','workflows','veroeffentlichen.yml'))
 # Stufe 2b: Stand und Zeitplan im privaten Repo (Abfrage durch die geöffneten Atlanten), App-Dateien auf der Webseite
 SD=os.path.join(SL,'steuerung');os.makedirs(SD,exist_ok=True)
-json.dump({'spieler':stand,'sl':hashlib.sha1(arbw).hexdigest()[:12]},open(os.path.join(SD,'stand.json'),'w'))
+json.dump({'spieler':stand,'sl':hashlib.sha1(arbw).hexdigest()[:12],'spieler_v':_rj('spieler-ops.json',{}).get('v',0) if _rj('spieler-ops.json',{}).get('basis')==stand else 0,'sl_v':seq,'basis':basis},open(os.path.join(SD,'stand.json'),'w'))
 zp=os.path.join(SD,'zeitplan.json')
 if not os.path.exists(zp):
     open(zp,'w',encoding='utf-8').write('''{
