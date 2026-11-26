@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><meta name="robots" content="noindex,nofollow">
+<meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark">
+<title>Scherbenwelt Atlas · App installieren</title>
+<link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="apple-touch-icon.png"><link rel="icon" type="image/png" href="icon-192.png">
+<meta name="theme-color" content="#0e0c0a"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Scherbenwelt">
+<style>
+:root{--bg:#0e0c0a;--panel:#1b1712;--line:#5a4a30;--gold:#c9a24a;--text:#efe3c6;--muted:#a8987a}
+*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 system-ui,sans-serif}
+main{max-width:460px;margin:0 auto;padding:24px 16px}
+.kopf{display:flex;gap:14px;align-items:center;margin-bottom:18px}.kopf img{width:64px;height:64px;border-radius:14px;border:1px solid var(--line)}
+h1{font:normal 24px Georgia,serif;color:var(--gold);margin:0}.sub{color:var(--muted);font-size:14px;margin:2px 0 0}
+section{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:14px;display:none}section.an{display:block}
+h2{font:600 16px system-ui;margin:0 0 10px}ol{margin:0;padding-left:22px}li{margin:6px 0}
+button,a.knopf{display:block;width:100%;text-align:center;margin-top:12px;padding:12px;font:600 16px system-ui;color:#1b1712;background:var(--gold);border:0;border-radius:7px;cursor:pointer;text-decoration:none}
+a.knopf.s{background:none;color:var(--gold);border:1px solid var(--line)}b{color:#fff}.hint{color:var(--muted);font-size:14px;margin-top:10px}
+</style></head><body><main>
+<div class="kopf"><img src="icon-192.png" alt=""><div><h1>Scherbenwelt Atlas</h1><p class="sub">Als App auf dem Gerät</p></div></div>
+
+<section id="fertig"><h2>Läuft bereits als App</h2><p>Der Atlas ist auf diesem Gerät installiert und als App geöffnet.</p><a class="knopf" href="../">Zum Atlas</a></section>
+
+<section id="android"><h2>Installieren</h2><p>Ein Tipp genügt; danach liegt „Scherbenwelt“ auf dem Startbildschirm.</p>
+<button id="inst" type="button">App installieren</button>
+<p class="hint" id="androidHinweis" style="display:none">Falls nichts passiert: Menü <b>⋮</b> oben rechts → <b>App installieren</b> bzw. <b>Zum Startbildschirm hinzufügen</b>.</p></section>
+
+<section id="ios"><h2>Auf iPhone / iPad (Safari)</h2>
+<ol>
+<li>Diese Seite in <b>Safari</b> öffnen (nicht in einer anderen App).</li>
+<li>Unten in der Adressleiste auf die Taste <b>links neben der Adresse</b> tippen (drei Striche bzw. drei Punkte). Bei älteren iOS-Versionen direkt das <b>Teilen-Symbol</b> (Quadrat mit Pfeil nach oben) in der unteren Leiste.</li>
+<li><b>Teilen</b> wählen.</li>
+<li>In der Liste nach unten wischen → <b>Zum Home-Bildschirm</b>.</li>
+<li>„Als Web-App öffnen“ eingeschaltet lassen → <b>Hinzufügen</b>.</li>
+</ol>
+<p class="hint">Die App hat einen eigenen Speicher: darin einmal anmelden und „Auf diesem Gerät angemeldet bleiben“ anhaken.</p></section>
+
+<section id="sonst"><h2>Am Computer</h2><p>Chrome oder Edge: in der Adressleiste rechts das Symbol <b>Installieren</b> (Bildschirm mit Pfeil) oder Menü → <b>App installieren</b>. Safari am Mac: Ablage → <b>Zum Dock hinzufügen</b>.</p>
+<button id="inst2" type="button" style="display:none">App installieren</button></section>
+
+<a class="knopf s" href="../">Ohne App weiter zum Atlas</a>
+</main>
+<script>
+(()=>{const $=i=>document.getElementById(i),ua=navigator.userAgent||'';
+const ios=/iPad|iPhone|iPod/.test(ua)||(/Mac/.test(navigator.platform||'')&&navigator.maxTouchPoints>1),android=/Android/.test(ua);
+const app=matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
+$(app?'fertig':ios?'ios':android?'android':'sonst').classList.add('an');
+try{if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('../sw.js',{scope:'../'}).catch(()=>{})}catch(e){}
+let ev=null;addEventListener('beforeinstallprompt',e=>{e.preventDefault();ev=e;$('inst2').style.display='block'});
+addEventListener('appinstalled',()=>{location.href='../'});
+const go=async()=>{if(ev){ev.prompt();try{await ev.userChoice}catch(e){}ev=null}else $('androidHinweis').style.display='block'};
+$('inst').onclick=go;$('inst2').onclick=go;setTimeout(()=>{if(!ev&&android)$('androidHinweis').style.display='block'},4000)})();
+</script></body></html>
