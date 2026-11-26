@@ -106,3 +106,10 @@ Backup der Webseite vor der Umstellung: privates Repo scherbenwelt-sl, Zweig `ba
 - `scherbenwelt-sl/steuerung/stand.json`: Kennung der aktuellen Spieler- und SL-Fassung (schreibt login_bauen.py).
 - Gerätespeicher: Die Anmeldeseite hält die zuletzt geladene Fassung in IndexedDB („scherbenwelt“); neu geladen wird nur bei geänderter Kennung. Abmelden löscht den Gerätespeicher.
 - App: `app/manifest.webmanifest`, Symbole in `app/`, `sw.js` (nur für die Installation, ohne Zwischenspeicher).
+
+## V10.95 · Spielerbögen (Stufe 3)
+
+- `apply95.py <v10_94.html> patch1095.js <v10_95.html>`: neuer Hauptreiter „Spielerbögen“ (Unterreiter Schiffe), Schiffsbogen aus Tabellen dorthin verschoben, `delete r.online` in der Spielerdatei.
+- Online: Spieler speichern in `BoHMaybe/scherbenwelt-<name>/boegen/schiffe.json` (Token „eigen“), automatisch 15 s nach Änderung bzw. „Jetzt speichern“, beim Verlassen/Ausblenden sofort. Konflikt (anderes Gerät): letzte Speicherung gewinnt.
+- SL: Spielerliste aus `scherbenwelt-sl/steuerung/spieler.json` (bearbeitbar); „Online-Stand übernehmen“ schreibt `atlas.online.schiffe` in den Arbeitsstand (nicht in die Spielerdatei).
+- `test_online.py`: Ablauf gegen nachgebautes GitHub (Spieler anlegen/speichern/neu laden/löschen, SL bearbeiten mit Konflikt, Übernahme).

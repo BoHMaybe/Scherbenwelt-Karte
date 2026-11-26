@@ -87,7 +87,7 @@ async function openAtlas(P){
   gzb=new Blob([pt]);pt=null;
  }
  prog(1);msg('Atlas wird geöffnet …');
- const info={name:P.name,rolle:P.rolle,tokens:P.tokens||{},repo:P.repo||null,root:ROOT,stand:stand};
+ const info={name:P.name,benutzer:P.benutzer||null,rolle:P.rolle,tokens:P.tokens||{},repo:P.repo||null,root:ROOT,stand:stand};
  const pre='<base href="'+ROOT+'"><link rel="manifest" href="app/manifest.webmanifest"><link rel="apple-touch-icon" href="app/apple-touch-icon.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Scherbenwelt"><script>window.SW_LOGIN='+JSON.stringify(info).replace(/</g,'\\u003c')+';<\/script>';
  const post='<script>(function(){var L=window.SW_LOGIN;if(!L)return;var d=document.createElement("div");d.id="swLoginBadge";d.style.cssText="position:fixed;right:8px;bottom:8px;z-index:9000;font:12px system-ui,sans-serif;background:#1f1b16;color:#f6e7c4;border:1px solid #6b5a3a;border-radius:6px;padding:4px 8px;opacity:.85";d.innerHTML="";var s=document.createElement("span");s.textContent=(L.rolle==="sl"?"SL · ":"")+L.name+" · ";var a=document.createElement("a");a.href="#";a.textContent="Abmelden";a.style.color="#e8c56a";a.onclick=function(e){e.preventDefault();try{sessionStorage.removeItem("'+KEY+'");localStorage.removeItem("'+KEY+'");if(L.rolle==="sl")localStorage.removeItem("scherbenweltSLSchluessel");indexedDB.deleteDatabase("scherbenwelt")}catch(x){}setTimeout(function(){location.reload()},150)};d.appendChild(s);d.appendChild(a);document.body.appendChild(d)})();<\/script><script src="app/abfrage.js?v=__AV__"><\/script>';
  /* stückweise entpacken und schreiben: der Atlas liegt nie zusätzlich als Ganzes im Speicher (iPhone) */

@@ -83,6 +83,11 @@ if not os.path.exists(zp):
 }
 ''')
 json.load(open(zp,encoding='utf-8'))
+sp=os.path.join(SD,'spieler.json')
+if not os.path.exists(sp):
+    json.dump({'hinweis':'Spieler für die Spielerbögen der Spielleitung (Benutzername, Anzeigename, privates Repo). Bearbeitbar.',
+               'spieler':[{'benutzer':b,'name':n,'repo':'BoHMaybe/scherbenwelt-'+b} for b,n in [('bernd','Bernd'),('drew','Drew'),('tink','Tink'),('slevin','Slevin'),('haraku','Haraku'),('blutaar','Blutaar'),('gast1','Gast 1'),('gast2','Gast 2')]]},
+              open(sp,'w',encoding='utf-8'),ensure_ascii=False,indent=1)
 import shutil
 AP=os.path.join(PUB,'app');os.makedirs(AP,exist_ok=True)
 for f in os.listdir(os.path.join(HERE,'app')):
