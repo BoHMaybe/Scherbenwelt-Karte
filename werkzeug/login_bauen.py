@@ -66,8 +66,32 @@ arbw=slweb(arb)
 sgz=gzip.compress(arbw,6,mtime=0);T=2*2**20;n=0
 for i in range(0,len(sgz),T): open(os.path.join(TD,'a%03d.bin'%n),'wb').write(sgz[i:i+T]);n+=1
 json.dump({'teile':n,'groesse':len(sgz),'sha1':hashlib.sha1(sgz).hexdigest(),'stand':hashlib.sha1(arbw).hexdigest()[:12],'mb':round(len(arbw)/2**20,1)},open(os.path.join(TD,'index.json'),'w'))
+# Stufe 2b: Stand und Zeitplan im privaten Repo (Abfrage durch die geöffneten Atlanten), App-Dateien auf der Webseite
+SD=os.path.join(SL,'steuerung');os.makedirs(SD,exist_ok=True)
+json.dump({'spieler':stand,'sl':hashlib.sha1(arbw).hexdigest()[:12]},open(os.path.join(SD,'stand.json'),'w'))
+zp=os.path.join(SD,'zeitplan.json')
+if not os.path.exists(zp):
+    open(zp,'w',encoding='utf-8').write('''{
+ "hinweis": "Abfrage-Zeitplan des Web-Atlas. Zeiten in deutscher Zeit (Europe/Berlin). Tage: So Mo Di Mi Do Fr Sa. takt \\"täglich\\" = einmal am Tag, sonst sekunden (mindestens 10). Änderungen wirken spätestens nach einer Stunde.",
+ "zeitzone": "Europe/Berlin",
+ "abschnitte": [
+  {"von": "So 22:00", "bis": "Fr 15:00", "takt": "täglich"},
+  {"von": "Fr 15:00", "bis": "Sa 14:00", "sekunden": 60},
+  {"von": "Sa 14:00", "bis": "So 02:00", "sekunden": 20},
+  {"von": "So 02:00", "bis": "So 22:00", "sekunden": 60}
+ ]
+}
+''')
+json.load(open(zp,encoding='utf-8'))
+import shutil
+AP=os.path.join(PUB,'app');os.makedirs(AP,exist_ok=True)
+for f in os.listdir(os.path.join(HERE,'app')):
+    if f!='sw.js': shutil.copy2(os.path.join(HERE,'app',f),os.path.join(AP,f))
+shutil.copy2(os.path.join(HERE,'app','sw.js'),os.path.join(PUB,'sw.js'))
+av=hashlib.sha1(open(os.path.join(HERE,'app','abfrage.js'),'rb').read()).hexdigest()[:10]
 # Hülle
 h=open(os.path.join(HERE,'login_huelle.html'),encoding='utf-8').read()
+assert h.count('__AV__')==1;h=h.replace('__AV__',av)
 assert h.count("'__ROOT__'")==1
 if ZIEL=='test':
     os.makedirs(os.path.join(PUB,'test'),exist_ok=True);out=os.path.join(PUB,'test','index.html');h=h.replace("'__ROOT__'","'../'")

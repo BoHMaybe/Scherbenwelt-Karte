@@ -98,3 +98,11 @@ Zuordnung über den Dateinamen: `TITEL-<Kürzel>` (Titelbild im Geschichtseintra
 5. gh-pages und scherbenwelt-sl committen und pushen.
 
 Backup der Webseite vor der Umstellung: privates Repo scherbenwelt-sl, Zweig `backup-web-vor-login-2026-11-26` (vollständig mit Geschichte).
+
+### Stufe 2b (V10.95)
+
+- `app/abfrage.js` (nach `gh-pages/app/`): fragt im geöffneten Atlas `scherbenwelt-sl/steuerung/stand.json` nach Zeitplan ab und zeigt bei neuer Fassung „Neu laden“. Bedingte Abfragen (ETag), im Hintergrund keine Abfrage.
+- `scherbenwelt-sl/steuerung/zeitplan.json`: Zeitplan, vom SL auf GitHub bearbeitbar (wird von login_bauen.py nie überschrieben). Wirkt spätestens nach 1 Stunde.
+- `scherbenwelt-sl/steuerung/stand.json`: Kennung der aktuellen Spieler- und SL-Fassung (schreibt login_bauen.py).
+- Gerätespeicher: Die Anmeldeseite hält die zuletzt geladene Fassung in IndexedDB („scherbenwelt“); neu geladen wird nur bei geänderter Kennung. Abmelden löscht den Gerätespeicher.
+- App: `app/manifest.webmanifest`, Symbole in `app/`, `sw.js` (nur für die Installation, ohne Zwischenspeicher).
