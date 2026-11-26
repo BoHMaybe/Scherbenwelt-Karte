@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><meta name="robots" content="noindex,nofollow">
+<meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark">
+<title>Scherbenwelt Atlas · Anmeldung</title>
+<style>
+:root{--bg:#0e0c0a;--panel:#1b1712;--line:#5a4a30;--gold:#c9a24a;--text:#efe3c6;--muted:#a8987a;--err:#e07a6a}
+*{box-sizing:border-box}html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font:16px/1.45 Georgia,'Times New Roman',serif}
+body{display:flex;align-items:center;justify-content:center;padding:16px;background:radial-gradient(ellipse at 50% 30%,#2a2118 0%,#0e0c0a 70%)}
+.box{width:100%;max-width:380px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:26px 22px 20px;box-shadow:0 12px 40px rgba(0,0,0,.6)}
+h1{margin:0 0 4px;font-size:24px;letter-spacing:.04em;color:var(--gold);text-align:center;font-weight:normal}
+.sub{margin:0 0 20px;text-align:center;color:var(--muted);font-size:13px;letter-spacing:.12em;text-transform:uppercase}
+label{display:block;font-size:13px;color:var(--muted);margin:12px 0 4px}
+input[type=text],input[type=password]{width:100%;padding:11px 12px;font:16px system-ui,sans-serif;color:var(--text);background:#120f0b;border:1px solid var(--line);border-radius:6px;outline:none}
+input:focus{border-color:var(--gold)}
+.row{display:flex;align-items:center;gap:8px;margin:14px 0 4px;font-size:14px;color:var(--muted)}
+button{width:100%;margin-top:16px;padding:12px;font:600 16px system-ui,sans-serif;color:#1b1712;background:var(--gold);border:0;border-radius:6px;cursor:pointer}
+button:disabled{opacity:.6;cursor:wait}
+.msg{min-height:20px;margin-top:12px;font:14px system-ui,sans-serif;text-align:center}
+.msg.err{color:var(--err)}
+.bar{height:4px;background:#2a2218;border-radius:2px;margin-top:10px;overflow:hidden;display:none}
+.bar i{display:block;height:100%;width:0;background:var(--gold);transition:width .2s}
+</style></head>
+<body>
+<form class="box" id="f" autocomplete="on">
+ <h1>Scherbenwelt Atlas</h1><p class="sub">Anmeldung</p>
+ <label for="u">Benutzername</label><input type="text" id="u" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" required>
+ <label for="p">Passwort</label><input type="password" id="p" name="password" autocomplete="current-password" required>
+ <div class="row"><input type="checkbox" id="r"><label for="r" style="margin:0;color:var(--muted)">Auf diesem Gerät angemeldet bleiben</label></div>
+ <button type="submit" id="b">Anmelden</button>
+ <div class="bar" id="bar"><i id="bi"></i></div>
+ <div class="msg" id="m"></div>
+</form>
+<script>
+(()=>{
+/* Scherbenwelt Atlas · Login-Hülle (V10.95). Alles in dieser Funktion, damit nach dem Öffnen keine globalen Namen mit dem Atlas kollidieren. Der Atlas liegt verschlüsselt in daten/spieler.bin (Spieler) bzw. im privaten Repo (SL). */
+const ROOT=new URL('__ROOT__',location.href).href,SLREPO='BoHMaybe/scherbenwelt-sl',SLFILE='sl/arbeitsstand.html.gz',KEY='scherbenweltLogin';
+const $=i=>document.getElementById(i),te=new TextEncoder();
+const b64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+function msg(t,err){$('m').textContent=t||'';$('m').className='msg'+(err?' err':'')}
+function prog(x){$('bar').style.display=x==null?'none':'block';$('bi').style.width=Math.round((x||0)*100)+'%'}
+async function getJson(u){const r=await fetch(u,{cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status+' '+u);return r.json()}
+async function getBuf(u,opt,size){const r=await fetch(u,opt||{});if(!r.ok)throw new Error(r.status===401||r.status===403||r.status===404?'ZUGRIFF':'HTTP '+r.status);
+ const total=size||+r.headers.get('content-length')||0;if(!r.body||!total)return new Uint8Array(await r.arrayBuffer());
+ const rd=r.body.getReader(),parts=[];let n=0;for(;;){const {done,value}=await rd.read();if(done)break;parts.push(value);n+=value.length;prog(Math.min(.95,n/total))}
+ const out=new Uint8Array(n);let o=0;for(const p of parts){out.set(p,o);o+=p.length}return out}
+async function gunzip(u8){return new Response(new Blob([u8]).stream().pipeThrough(new DecompressionStream('gzip'))).text()}
+async function unlock(name,pw){
+ let z;try{z=await getJson(ROOT+'zugang/zugaenge.json')}catch(x){throw new Error(/HTTP 404/.test(x.message)?'Noch keine Zugänge eingerichtet.':x.message)}const e=(z.nutzer||{})[name];if(!e)throw new Error('FALSCH');
+ const km=await crypto.subtle.importKey('raw',te.encode(pw),'PBKDF2',false,['deriveKey']);
+ const k=await crypto.subtle.deriveKey({name:'PBKDF2',salt:b64(e.salt),iterations:z.iter,hash:'SHA-256'},km,{name:'AES-GCM',length:256},false,['decrypt']);
+ try{const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:b64(e.iv)},k,b64(e.ct));return JSON.parse(new TextDecoder().decode(pt))}catch(x){throw new Error('FALSCH')}}
+async function openAtlas(P){
+ msg(P.rolle==='sl'?'Spielleiter-Fassung wird geladen …':'Atlas wird geladen …');prog(0);let html;
+ if(P.rolle==='sl'){
+  const u8=await getBuf('https://api.github.com/repos/'+SLREPO+'/contents/'+SLFILE,{cache:'no-store',headers:{Authorization:'Bearer '+P.tokens.sl,Accept:'application/vnd.github.raw+json'}});
+  html=await gunzip(u8);try{localStorage.setItem('scherbenweltSLSchluessel',P.tokens.sl)}catch(e){}
+ }else{
+  let st='';try{st=(await getJson(ROOT+'daten/stand.json')).stand||''}catch(e){}
+  const u8=await getBuf(ROOT+'daten/spieler.bin?v='+encodeURIComponent(st));
+  const k=await crypto.subtle.importKey('raw',b64(P.schluessel),{name:'AES-GCM'},false,['decrypt']);
+  let pt;try{pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:u8.slice(0,12)},k,u8.slice(12))}catch(e){throw new Error('DATEN')}
+  html=await gunzip(new Uint8Array(pt));
+ }
+ prog(1);msg('Atlas wird geöffnet …');
+ const info={name:P.name,rolle:P.rolle,tokens:P.tokens||{},repo:P.repo||null,root:ROOT};
+ const pre='<base href="'+ROOT+'"><script>window.SW_LOGIN='+JSON.stringify(info).replace(/</g,'\\u003c')+';<\/script>';
+ const post='<script>(function(){var L=window.SW_LOGIN;if(!L)return;var d=document.createElement("div");d.id="swLoginBadge";d.style.cssText="position:fixed;right:8px;bottom:8px;z-index:9000;font:12px system-ui,sans-serif;background:#1f1b16;color:#f6e7c4;border:1px solid #6b5a3a;border-radius:6px;padding:4px 8px;opacity:.85";d.innerHTML="";var s=document.createElement("span");s.textContent=(L.rolle==="sl"?"SL · ":"")+L.name+" · ";var a=document.createElement("a");a.href="#";a.textContent="Abmelden";a.style.color="#e8c56a";a.onclick=function(e){e.preventDefault();try{sessionStorage.removeItem("'+KEY+'");localStorage.removeItem("'+KEY+'");if(L.rolle==="sl")localStorage.removeItem("scherbenweltSLSchluessel")}catch(x){}location.reload()};d.appendChild(s);d.appendChild(a);document.body.appendChild(d)})();<\/script>';
+ html=html.replace(/<head([^>]*)>/i,m=>m+pre);const i=html.lastIndexOf('</body>');html=i>=0?html.slice(0,i)+post+html.slice(i):html+post;
+ document.open();document.write(html);document.close()}
+function saved(){try{return JSON.parse(sessionStorage.getItem(KEY)||localStorage.getItem(KEY)||'null')}catch(e){return null}}
+$('f').addEventListener('submit',async ev=>{ev.preventDefault();const name=$('u').value.trim().toLowerCase(),pw=$('p').value;if(!name||!pw)return;
+ $('b').disabled=true;msg('Anmeldung wird geprüft …');
+ try{const P=await unlock(name,pw);const s=JSON.stringify(P);try{sessionStorage.setItem(KEY,s);if($('r').checked)localStorage.setItem(KEY,s);else localStorage.removeItem(KEY)}catch(e){}await openAtlas(P)}
+ catch(e){prog(null);$('b').disabled=false;
+  msg(e.message==='FALSCH'?'Benutzername oder Passwort falsch.':e.message==='ZUGRIFF'?'Kein Zugriff auf die Spielleiter-Fassung (Schlüssel prüfen).':e.message==='DATEN'?'Atlas-Daten passen nicht zu diesem Zugang (Zugänge neu erzeugen).':'Fehler beim Laden: '+e.message,true)}});
+(async()=>{if(!window.crypto||!crypto.subtle||typeof DecompressionStream==='undefined'){msg('Dieser Browser ist zu alt für den Atlas. Bitte aktuellen Browser verwenden.',true);$('b').disabled=true;return}
+ const P=saved();if(P){$('b').disabled=true;try{await openAtlas(P)}catch(e){prog(null);$('b').disabled=false;try{sessionStorage.removeItem(KEY);localStorage.removeItem(KEY)}catch(x){}msg('Bitte erneut anmelden.',true)}}else $('u').focus()})();
+})();
+</script>
+</body></html>

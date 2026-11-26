@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Scherbenwelt Zugangswerkzeug</title>
+<style>
+:root{--bg:#f6f1e6;--panel:#fffaf0;--line:#c9b48a;--text:#2a2116;--muted:#6f6046;--gold:#8a6a22;--err:#a33;--ok:#2d6a2d}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 system-ui,sans-serif;padding:16px}
+main{max-width:860px;margin:0 auto}h1{font:normal 26px Georgia,serif;color:var(--gold);margin:0 0 4px}h2{font:600 16px system-ui;margin:0 0 10px}
+.sub{color:var(--muted);margin:0 0 16px}section{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px;margin-bottom:14px}
+label{display:block;font-size:13px;color:var(--muted);margin:8px 0 3px}input,select{width:100%;padding:8px 9px;font:15px system-ui;border:1px solid var(--line);border-radius:5px;background:#fff;color:var(--text)}
+.g{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}@media(max-width:600px){.g{grid-template-columns:1fr}}
+button{padding:8px 12px;font:600 14px system-ui;border:1px solid var(--gold);background:var(--gold);color:#fff;border-radius:5px;cursor:pointer;margin:10px 8px 0 0}
+button.s{background:#fff;color:var(--gold)}button:disabled{opacity:.5;cursor:wait}
+table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;padding:6px 8px;border-bottom:1px solid #e4d8bd}th{color:var(--muted);font-weight:600}
+.msg{margin-top:8px;font-size:14px;min-height:18px}.err{color:var(--err)}.ok{color:var(--ok)}code{background:#efe6d2;padding:1px 4px;border-radius:3px}
+.hint{font-size:13px;color:var(--muted);margin:6px 0 0}.pw{display:flex;gap:6px}.pw input{flex:1}.pw button{margin:0;white-space:nowrap}
+</style></head><body><main>
+<h1>Scherbenwelt · Zugangswerkzeug</h1>
+<p class="sub">Erzeugt die Datei <code>zugang/zugaenge.json</code> für die Anmeldung am Web-Atlas. Läuft vollständig in diesem Browser; Passwörter und Schlüssel verlassen das Gerät nicht. Die erzeugte Datei enthält nur verschlüsselte Einträge.</p>
+
+<section><h2>1 · Grundlage</h2>
+<label>Vorhandene zugaenge.json laden (zum Ergänzen oder Ändern; beim ersten Mal leer lassen)</label>
+<input type="file" id="fz" accept=".json,application/json">
+<label>Datenschlüssel der Spielerfassung (Inhalt von <code>scherbenwelt-sl/zugang/spielerschluessel.txt</code>)</label>
+<div class="pw"><input type="password" id="dk" autocomplete="off" spellcheck="false"><button type="button" class="s" id="dkLoad">Mit SL-Token aus scherbenwelt-sl laden</button></div>
+<p class="hint">Für „laden“ zuerst unten das SL-Gesamt-Token eintragen (Rolle Spielleiter). Kennung des Schlüssels: <code id="dkPruef">–</code></p>
+<div class="msg" id="m1"></div></section>
+
+<section><h2>2 · Zugang anlegen oder ersetzen</h2>
+<div class="g">
+<div><label>Benutzername (Kleinbuchstaben)</label><input id="un" list="unl" autocapitalize="none" spellcheck="false">
+<datalist id="unl"><option>sl</option><option>bernd</option><option>drew</option><option>tink</option><option>slevin</option><option>haraku</option><option>blutaar</option><option>gast1</option><option>gast2</option></datalist></div>
+<div><label>Rolle</label><select id="ro"><option value="spieler">Spieler</option><option value="sl">Spielleiter</option></select></div>
+<div><label>Anzeigename</label><input id="an" placeholder="z. B. Bernd"></div>
+<div><label>Eigenes Repo</label><input id="rp" placeholder="BoHMaybe/scherbenwelt-bernd" spellcheck="false"></div>
+<div><label id="t1l">Token eigenes Repo (Lesen und Schreiben)</label><input type="password" id="t1" autocomplete="off" spellcheck="false"></div>
+<div><label id="t2l">Token scherbenwelt-sl (nur Lesen)</label><input type="password" id="t2" autocomplete="off" spellcheck="false"></div>
+<div><label>Passwort</label><div class="pw"><input type="text" id="pw" autocomplete="off" spellcheck="false"><button type="button" class="s" id="pwGen">Vorschlag</button></div></div>
+<div><label>Passwort wiederholen</label><input type="text" id="pw2" autocomplete="off" spellcheck="false"></div>
+</div>
+<p class="hint">Vorschlag: Spieler 4–5 Wörter, Spielleiter 6 Wörter. Das Passwort hier notieren und dem Spieler persönlich geben; es ist später nicht mehr lesbar. Beim Spielleiter genügt ein Token (SL-Gesamt) im unteren Feld.</p>
+<button type="button" id="add">Zugang speichern</button><div class="msg" id="m2"></div></section>
+
+<section><h2>3 · Vorhandene Zugänge</h2>
+<table><thead><tr><th>Benutzername</th><th>Stand</th><th></th></tr></thead><tbody id="tb"></tbody></table>
+<button type="button" id="dl">zugaenge.json herunterladen</button><div class="msg" id="m3"></div>
+<p class="hint">Die heruntergeladene Datei auf GitHub in <code>Scherbenwelt-Karte</code>, Zweig <code>gh-pages</code>, Ordner <code>zugang/</code> hochladen (vorhandene ersetzen) oder Claude schicken. Sie ist ohne Passwort nicht lesbar.</p></section>
+
+<section><h2>4 · Anmeldung prüfen</h2>
+<div class="g"><div><label>Benutzername</label><input id="cu" autocapitalize="none"></div><div><label>Passwort</label><input type="password" id="cp"></div></div>
+<button type="button" class="s" id="chk">Prüfen</button><div class="msg" id="m4"></div></section>
+</main>
+<script>
+(()=>{
+const ITER=600000,WL='achat adler ahorn amboss amsel anker apfel asche axt bach backstein banner bart becher beere berg bernstein besen beutel birke birne blatt blitz blume bogen boot brand brett brief brot bruecke brunnen buch burg busch dach dachs damm degen deich distel dolch donner dorf drache draht drossel duene eber efeu eiche eimer eis eisen elch ente erbse erde esche esel eule fackel faden falke falter farn fass feder fels fenster fichte fink fisch flamme flasche floss fluss fohlen forst frosch fuchs funke gabel gans garten geier geige gerste gipfel glocke gold graben granit gras greif grotte gurt hafen hagel hain halm hammer harfe hase hecht hecke heide helm hering herz heu himmel hirsch hof honig horn huegel hummel hund hut igel insel jaspis joch kamm kanne karren kauz kerze kessel kette kiefer kiesel kirsche kiste klinge knoten kobalt kohle kompass korb krabbe kraehe kranich kreide krone krug kupfer laterne laub lehm leiter lerche linde loewe lotse luchs mantel marder markt marmor mauer meer mehl messer milch moehre moewe mond moor moos muehle muschel nadel nebel nelke nest netz nuss ofen opal otter pfad pfeil pferd pflug pilz platz pokal quarz quelle rabe rad rahmen regen reh reiher riegel rinde ring rose rubin ruder saat sack salbei salz sand sattel schale schild schilf schwan see segel seil sense sichel silber sonne specht speer spinne stahl stall stein stern stiefel strand strom stuhl sturm tanne teich teller tiger tinte topf tor tulpe turm ufer uhr ulme veilchen vogel waage wabe wachtel wagen wal wald wand wasser weide weizen welle wiese wind winter wolf wolke wurzel zange zeder zelt ziege zinn zweig zwiebel'.split(' ');
+const $=i=>document.getElementById(i),te=new TextEncoder();
+const b64=u=>{let s='';for(const c of new Uint8Array(u))s+=String.fromCharCode(c);return btoa(s)},ub=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+let Z={version:1,iter:ITER,pruef:null,nutzer:{}};
+const msg=(id,t,c)=>{$(id).textContent=t||'';$(id).className='msg'+(c?' '+c:'')};
+async function pruefOf(k){try{const raw=ub(k.trim());if(raw.length!==32)return null;const h=await crypto.subtle.digest('SHA-256',new Uint8Array([...te.encode('scherbenwelt-pruef'),...raw]));return [...new Uint8Array(h)].map(x=>x.toString(16).padStart(2,'0')).join('').slice(0,12)}catch(e){return null}}
+async function upd(){const p=await pruefOf($('dk').value);$('dkPruef').textContent=p||'–';
+ if(p&&Z.pruef&&p!==Z.pruef)msg('m1','Achtung: Dieser Schlüssel passt nicht zu den geladenen Zugängen (Kennung '+Z.pruef+').','err');else if($('dk').value&&!p)msg('m1','Schlüssel ungültig (erwartet 32 Byte Base64).','err');else msg('m1','')}
+$('dk').addEventListener('input',upd);
+function rows(){const tb=$('tb');tb.innerHTML='';const ks=Object.keys(Z.nutzer).sort();if(!ks.length){tb.innerHTML='<tr><td colspan="3" style="color:#6f6046">noch keine</td></tr>';return}
+ for(const k of ks){const tr=document.createElement('tr');const a=document.createElement('td');a.textContent=k;const b=document.createElement('td');b.textContent=Z.nutzer[k].stand||'';const c=document.createElement('td');const x=document.createElement('button');x.className='s';x.style.margin='0';x.textContent='Löschen';x.onclick=()=>{if(confirm('Zugang „'+k+'“ löschen?')){delete Z.nutzer[k];rows()}};c.appendChild(x);tr.append(a,b,c);tb.appendChild(tr)}}
+rows();
+$('fz').addEventListener('change',async e=>{const f=e.target.files[0];if(!f)return;try{const j=JSON.parse(await f.text());if(!j.nutzer)throw 0;Z=j;Z.iter=Z.iter||ITER;rows();msg('m1',Object.keys(Z.nutzer).length+' Zugänge geladen.','ok');upd()}catch(x){msg('m1','Datei ist keine gültige zugaenge.json.','err')}});
+function role(){const sl=$('ro').value==='sl';$('t1l').textContent=sl?'Token eigenes Repo (beim SL leer lassen)':'Token eigenes Repo (Lesen und Schreiben)';$('t2l').textContent=sl?'SL-Gesamt-Token (Lesen und Schreiben, alle Repos)':'Token scherbenwelt-sl (nur Lesen)'}
+$('ro').addEventListener('change',role);
+$('un').addEventListener('change',()=>{const u=$('un').value.trim().toLowerCase();$('un').value=u;if(u==='sl'){$('ro').value='sl';if(!$('an').value)$('an').value='Spielleiter';$('rp').value='BoHMaybe/scherbenwelt-sl'}else if(u){$('ro').value='spieler';if(!$('an').value)$('an').value=u.charAt(0).toUpperCase()+u.slice(1);$('rp').value='BoHMaybe/scherbenwelt-'+u}role()});
+$('pwGen').onclick=()=>{const n=$('ro').value==='sl'?6:4,r=new Uint32Array(n);crypto.getRandomValues(r);const p=[...r].map(x=>WL[x%WL.length]).join('-');$('pw').value=p;$('pw2').value=p};
+$('dkLoad').onclick=async()=>{const t=$('t2').value.trim();if(!t){msg('m1','Zuerst Rolle Spielleiter wählen und das SL-Gesamt-Token eintragen.','err');return}
+ msg('m1','Lade …');try{const r=await fetch('https://api.github.com/repos/BoHMaybe/scherbenwelt-sl/contents/zugang/spielerschluessel.txt',{headers:{Authorization:'Bearer '+t,Accept:'application/vnd.github.raw+json'},cache:'no-store'});
+ if(!r.ok)throw new Error(r.status===401||r.status===403||r.status===404?'kein Zugriff (Token prüfen) – HTTP '+r.status:'HTTP '+r.status);$('dk').value=(await r.text()).trim();await upd();if(!$('m1').textContent)msg('m1','Schlüssel geladen.','ok')}catch(e){msg('m1','Laden fehlgeschlagen: '+e.message,'err')}};
+async function derive(pw,salt,use){const km=await crypto.subtle.importKey('raw',te.encode(pw),'PBKDF2',false,['deriveKey']);return crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:Z.iter,hash:'SHA-256'},km,{name:'AES-GCM',length:256},false,[use])}
+$('add').onclick=async()=>{const u=$('un').value.trim().toLowerCase(),ro=$('ro').value,pw=$('pw').value,dk=$('dk').value.trim(),t1=$('t1').value.trim(),t2=$('t2').value.trim();
+ if(!/^[a-z0-9._-]{2,32}$/.test(u))return msg('m2','Benutzername: 2–32 Zeichen a–z, 0–9, Punkt, Minus, Unterstrich.','err');
+ if(pw.length<12)return msg('m2','Passwort zu kurz (mindestens 12 Zeichen, besser Wortvorschlag).','err');if(pw!==$('pw2').value)return msg('m2','Passwörter stimmen nicht überein.','err');
+ const p=await pruefOf(dk);if(!p)return msg('m2','Datenschlüssel fehlt oder ist ungültig (Abschnitt 1).','err');if(Z.pruef&&Z.pruef!==p)return msg('m2','Datenschlüssel passt nicht zu den vorhandenen Zugängen.','err');
+ if(!t2)return msg('m2',ro==='sl'?'SL-Gesamt-Token fehlt.':'Token scherbenwelt-sl fehlt.','err');if(ro==='spieler'&&!t1)return msg('m2','Token eigenes Repo fehlt.','err');
+ if(Z.nutzer[u]&&!confirm('Zugang „'+u+'“ ersetzen?'))return;
+ $('add').disabled=true;msg('m2','Verschlüssele …');
+ try{const P={v:1,name:$('an').value.trim()||u,benutzer:u,rolle:ro,repo:$('rp').value.trim()||null,schluessel:dk,tokens:ro==='sl'?{sl:t2}:{eigen:t1,sl:t2}};
+  const salt=crypto.getRandomValues(new Uint8Array(16)),iv=crypto.getRandomValues(new Uint8Array(12));const k=await derive(pw,salt,'encrypt');
+  const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv},k,te.encode(JSON.stringify(P)));
+  Z.pruef=p;Z.nutzer[u]={salt:b64(salt),iv:b64(iv),ct:b64(ct),stand:new Date().toISOString().slice(0,10)};rows();
+  msg('m2','Zugang „'+u+'“ gespeichert. Jetzt Passwort notieren; danach Felder leeren oder nächsten Zugang anlegen.','ok');
+  for(const i of ['t1','t2'])$(i).value='';
+ }catch(e){msg('m2','Fehler: '+e.message,'err')}finally{$('add').disabled=false}};
+$('dl').onclick=()=>{if(!Object.keys(Z.nutzer).length)return msg('m3','Keine Zugänge vorhanden.','err');const b=new Blob([JSON.stringify(Z,null,1)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='zugaenge.json';document.body.appendChild(a);a.click();a.remove();msg('m3','Heruntergeladen: '+Object.keys(Z.nutzer).length+' Zugänge.','ok')};
+$('chk').onclick=async()=>{const u=$('cu').value.trim().toLowerCase(),e=Z.nutzer[u];if(!e)return msg('m4','Benutzer nicht vorhanden.','err');msg('m4','Prüfe …');
+ try{const k=await derive($('cp').value,ub(e.salt),'decrypt');const P=JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:ub(e.iv)},k,ub(e.ct))));
+  const m=t=>t?t.slice(0,8)+'…'+t.slice(-4):'–';msg('m4','Richtig. Rolle '+P.rolle+', Anzeigename '+P.name+', Repo '+(P.repo||'–')+', Token eigen '+m(P.tokens.eigen)+', Token SL '+m(P.tokens.sl)+'.','ok')}catch(x){msg('m4','Passwort falsch.','err')}};
+})();
+</script></body></html>
