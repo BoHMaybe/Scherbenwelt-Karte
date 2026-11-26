@@ -83,7 +83,7 @@ Zuordnung über den Dateinamen: `TITEL-<Kürzel>` (Titelbild im Geschichtseintra
 
 - `login_bauen.py <webdir/index.html> <Arbeitsstand.html> <gh-pages> <scherbenwelt-sl> [test|live]` – nach jedem Web-Build ausführen.
   - `daten/spieler.bin`: Spieler-Webfassung, gzip + AES-256-GCM. `daten/stand.json`: Stand und Schlüsselkennung.
-  - `scherbenwelt-sl/sl/arbeitsstand.html.gz`: SL-Fassung (privat, nur komprimiert).
+  - `scherbenwelt-sl/sl/teile/`: SL-Fassung, gzip in Teilen zu 2 MB plus index.json (privat). Teile, weil GitHub API-Abrufe nach etwa 10 s abbricht.
   - `scherbenwelt-sl/zugang/spielerschluessel.txt`: Datenschlüssel; einmal erzeugt, danach wiederverwendet (sonst müssen alle Zugänge neu erzeugt werden).
   - `test`: Hülle nach `test/index.html` (Live-Seite unverändert). `live`: Hülle ersetzt `index.html` – erst nach Freigabe; dann zusätzlich die unverschlüsselte Fassung aus der Git-Geschichte entfernen (Geschichte zusammenfassen).
 - `login_huelle.html`: Anmeldeseite. Lädt `zugang/zugaenge.json`, entschlüsselt den Eintrag (PBKDF2-SHA256 600 000, AES-GCM), öffnet Spieler- oder SL-Fassung per document.write mit `<base href>` auf die Seitenwurzel. Abmelden unten rechts.

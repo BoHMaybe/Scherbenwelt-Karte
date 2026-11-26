@@ -33,7 +33,7 @@ button:disabled{opacity:.6;cursor:wait}
 <script>
 (()=>{
 /* Scherbenwelt Atlas · Login-Hülle (V10.95). Alles in dieser Funktion, damit nach dem Öffnen keine globalen Namen mit dem Atlas kollidieren. Der Atlas liegt verschlüsselt in daten/spieler.bin (Spieler) bzw. im privaten Repo (SL). */
-const ROOT=new URL('__ROOT__',location.href).href,SLREPO='BoHMaybe/scherbenwelt-sl',SLFILE='sl/arbeitsstand.html.gz',KEY='scherbenweltLogin';
+const ROOT=new URL('__ROOT__',location.href).href,SLREPO='BoHMaybe/scherbenwelt-sl',SLDIR='sl/teile/',KEY='scherbenweltLogin';
 const $=i=>document.getElementById(i),te=new TextEncoder();
 const b64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
 function msg(t,err){$('m').textContent=t||'';$('m').className='msg'+(err?' err':'')}
@@ -52,7 +52,17 @@ async function unlock(name,pw){
 async function openAtlas(P){
  msg(P.rolle==='sl'?'Spielleiter-Fassung wird geladen …':'Atlas wird geladen …');prog(0);let html;
  if(P.rolle==='sl'){
-  const u8=await getBuf('https://api.github.com/repos/'+SLREPO+'/contents/'+SLFILE,{cache:'no-store',headers:{Authorization:'Bearer '+P.tokens.sl,Accept:'application/vnd.github.raw+json'}});
+  const H={Authorization:'Bearer '+P.tokens.sl,Accept:'application/vnd.github.raw+json'},U='https://api.github.com/repos/'+SLREPO+'/contents/'+SLDIR;
+  const ix=JSON.parse(new TextDecoder().decode(await getBuf(U+'index.json',{cache:'no-store',headers:H},1)));prog(0);
+  const parts=new Array(ix.teile);let next=0,got=0;
+  const one=async i=>{for(let v=1;;v++){try{const r=await fetch(U+'a'+String(i).padStart(3,'0')+'.bin?s='+ix.stand,{headers:H});
+    if(r.status===401||r.status===403||r.status===404)throw new Error('ZUGRIFF');if(!r.ok)throw new Error('HTTP '+r.status);
+    parts[i]=new Uint8Array(await r.arrayBuffer());got+=parts[i].length;prog(Math.min(.97,got/ix.groesse));msg('Spielleiter-Fassung wird geladen … '+Math.round(got/1048576)+' / '+Math.round(ix.groesse/1048576)+' MB');return}
+   catch(e){if(e.message==='ZUGRIFF'||v>=4)throw e;await new Promise(z=>setTimeout(z,800*v))}}};
+  const run=async()=>{while(next<ix.teile)await one(next++)};
+  await Promise.all([run(),run(),run(),run()]);
+  const u8=new Uint8Array(got);let o=0;for(const p of parts){u8.set(p,o);o+=p.length}
+  if(got!==ix.groesse)throw new Error('SL-Fassung unvollständig ('+got+' / '+ix.groesse+' Byte)');
   html=await gunzip(u8);try{localStorage.setItem('scherbenweltSLSchluessel',P.tokens.sl)}catch(e){}
  }else{
   let st='';try{st=(await getJson(ROOT+'daten/stand.json')).stand||''}catch(e){}
