@@ -88,3 +88,13 @@ Zuordnung über den Dateinamen: `TITEL-<Kürzel>` (Titelbild im Geschichtseintra
   - `test`: Hülle nach `test/index.html` (Live-Seite unverändert). `live`: Hülle ersetzt `index.html` – erst nach Freigabe; dann zusätzlich die unverschlüsselte Fassung aus der Git-Geschichte entfernen (Geschichte zusammenfassen).
 - `login_huelle.html`: Anmeldeseite. Lädt `zugang/zugaenge.json`, entschlüsselt den Eintrag (PBKDF2-SHA256 600 000, AES-GCM), öffnet Spieler- oder SL-Fassung per document.write mit `<base href>` auf die Seitenwurzel. Abmelden unten rechts.
 - `Zugangswerkzeug.html`: lokal im Browser öffnen; erzeugt/ändert `zugaenge.json` je Benutzer (Rolle, Tokens, Repo, Datenschlüssel), prüft Anmeldungen. Datei nach `gh-pages/zugang/` hochladen.
+
+### Ablauf nach jeder Sitzung (ab Umstellung 26.11.2026)
+
+1. `python3 build.py <Spielerkarte.html> <webdir> [Bilderordner]`
+2. `python3 pruefen.py <Spielerkarte.html> <webdir>` → „ALLES OK“
+3. `python3 uebernehmen.py <webdir> <gh-pages>` (a/, bilder/; index.html bleibt die Login-Hülle)
+4. `python3 login_bauen.py <webdir>/index.html <Arbeitsstand.html> <gh-pages> <scherbenwelt-sl> live` (immer nach 3, damit die SL-Fassung nur auf vorhandene a/-Dateien verweist)
+5. gh-pages und scherbenwelt-sl committen und pushen.
+
+Backup der Webseite vor der Umstellung: privates Repo scherbenwelt-sl, Zweig `backup-web-vor-login-2026-11-26` (vollständig mit Geschichte).
