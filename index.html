@@ -60,7 +60,7 @@ async function unlock(name,pw){
  const k=await crypto.subtle.deriveKey({name:'PBKDF2',salt:b64(e.salt),iterations:z.iter,hash:'SHA-256'},km,{name:'AES-GCM',length:256},false,['decrypt']);
  try{const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:b64(e.iv)},k,b64(e.ct));return JSON.parse(new TextDecoder().decode(pt))}catch(x){throw new Error('FALSCH')}}
 async function openAtlas(P){
- msg(P.rolle==='sl'?'Spielleiter-Fassung wird geladen …':'Atlas wird geladen …');prog(0);let gzb,stand='';
+ msg(P.rolle==='sl'?'Spielleiter-Fassung wird geladen …':'Atlas wird geladen …');prog(0);let gzb,stand='',ops=null;
  if(P.rolle==='sl'){
   const H={Authorization:'Bearer '+P.tokens.sl,Accept:'application/vnd.github.raw+json'},U='https://api.github.com/repos/'+SLREPO+'/contents/'+SLDIR;
   let ix;try{ix=await apiJson(P.tokens.sl,SLDIR+'index.json')}catch(e){const c0=await cGet('sl');if(e.message!=='ZUGRIFF'&&c0&&c0.blob)ix={stand:c0.stand,groesse:c0.blob.size};else throw e}prog(0);stand=ix.stand;
@@ -76,20 +76,22 @@ async function openAtlas(P){
   if(got!==ix.groesse)throw new Error('SL-Fassung unvollständig ('+got+' / '+ix.groesse+' Byte)');
   gzb=new Blob(parts);parts.length=0;await cPut('sl',{stand:ix.stand,blob:gzb})}
   try{localStorage.setItem('scherbenweltSLSchluessel',P.tokens.sl)}catch(e){}
+  ops={basis:ix.basis||null,seq:0,ops:[]};try{const A=await apiJson(P.tokens.sl,'online/aenderungen.json');if(A&&A.basis&&A.basis===ix.basis)ops={basis:A.basis,seq:A.seq||0,ops:A.ops||[]}}catch(e){}
  }else{
   let st='';try{st=(await apiJson((P.tokens||{}).sl||'','steuerung/stand.json')).spieler||''}catch(e){}
   if(!st)try{st=(await getJson(ROOT+'daten/stand.json')).stand||''}catch(e){}stand=st;
   const c=await cGet('spieler');let u8;
   if(c&&c.bin&&(!st||c.stand===st)){if(!st)stand=c.stand;u8=new Uint8Array(await c.bin.arrayBuffer());msg('Atlas aus dem Gerätespeicher …')}
   else{u8=await getBuf(ROOT+'daten/spieler.bin?v='+encodeURIComponent(st));if(st)await cPut('spieler',{stand:st,bin:new Blob([u8])})}
+  try{const O=await apiJson((P.tokens||{}).sl||'','online/spieler-ops.json');if(O&&O.basis&&O.basis===stand)ops={basis:O.basis,v:O.v||0,ops:O.ops||[]}}catch(e){}
   const k=await crypto.subtle.importKey('raw',b64(P.schluessel),{name:'AES-GCM'},false,['decrypt']);
   let pt;try{pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:u8.slice(0,12)},k,u8.slice(12))}catch(e){throw new Error('DATEN')}
   gzb=new Blob([pt]);pt=null;
  }
  prog(1);msg('Atlas wird geöffnet …');
- const info={name:P.name,benutzer:P.benutzer||null,rolle:P.rolle,tokens:P.tokens||{},repo:P.repo||null,root:ROOT,stand:stand};
- const pre='<base href="'+ROOT+'"><link rel="manifest" href="app/manifest.webmanifest"><link rel="apple-touch-icon" href="app/apple-touch-icon.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Scherbenwelt"><script>window.SW_LOGIN='+JSON.stringify(info).replace(/</g,'\\u003c')+';<\/script>';
- const post='<script>(function(){var L=window.SW_LOGIN;if(!L)return;var d=document.createElement("div");d.id="swLoginBadge";d.style.cssText="position:fixed;right:8px;bottom:8px;z-index:9000;font:12px system-ui,sans-serif;background:#1f1b16;color:#f6e7c4;border:1px solid #6b5a3a;border-radius:6px;padding:4px 8px;opacity:.85";d.innerHTML="";var s=document.createElement("span");s.textContent=(L.rolle==="sl"?"SL · ":"")+L.name+" · ";var a=document.createElement("a");a.href="#";a.textContent="Abmelden";a.style.color="#e8c56a";a.onclick=function(e){e.preventDefault();try{sessionStorage.removeItem("'+KEY+'");localStorage.removeItem("'+KEY+'");if(L.rolle==="sl")localStorage.removeItem("scherbenweltSLSchluessel");indexedDB.deleteDatabase("scherbenwelt")}catch(x){}setTimeout(function(){location.reload()},150)};d.appendChild(s);d.appendChild(a);document.body.appendChild(d)})();<\/script><script src="app/abfrage.js?v=21353dee0f"><\/script>';
+ const info={name:P.name,benutzer:P.benutzer||null,rolle:P.rolle,tokens:P.tokens||{},repo:P.repo||null,root:ROOT,stand:stand,v:ops?(ops.v||ops.seq||0):0,basis:ops?ops.basis:null};
+ const pre='<base data-sw href="'+ROOT+'"><link data-sw rel="manifest" href="app/manifest.webmanifest"><link data-sw rel="apple-touch-icon" href="app/apple-touch-icon.png"><meta data-sw name="apple-mobile-web-app-capable" content="yes"><meta data-sw name="apple-mobile-web-app-title" content="Scherbenwelt"><script data-sw>window.SW_LOGIN='+JSON.stringify(info).replace(/</g,'\\u003c')+';window.SW_OPS='+JSON.stringify(ops).replace(/</g,'\\u003c')+';<\/script>';
+ const post='<script data-sw>(function(){var L=window.SW_LOGIN;if(!L)return;var d=document.createElement("div");d.id="swLoginBadge";d.style.cssText="position:fixed;right:8px;bottom:8px;z-index:9000;font:12px system-ui,sans-serif;background:#1f1b16;color:#f6e7c4;border:1px solid #6b5a3a;border-radius:6px;padding:4px 8px;opacity:.85";d.innerHTML="";var s=document.createElement("span");s.textContent=(L.rolle==="sl"?"SL · ":"")+L.name+" · ";var a=document.createElement("a");a.href="#";a.textContent="Abmelden";a.style.color="#e8c56a";a.onclick=function(e){e.preventDefault();try{sessionStorage.removeItem("'+KEY+'");localStorage.removeItem("'+KEY+'");if(L.rolle==="sl")localStorage.removeItem("scherbenweltSLSchluessel");indexedDB.deleteDatabase("scherbenwelt")}catch(x){}setTimeout(function(){location.reload()},150)};d.appendChild(s);d.appendChild(a);document.body.appendChild(d)})();<\/script><script data-sw src="app/abfrage.js?v=5817552d74"><\/script>';
  /* stückweise entpacken und schreiben: der Atlas liegt nie zusätzlich als Ganzes im Speicher (iPhone) */
  const rd=gzb.stream().pipeThrough(new DecompressionStream('gzip')).pipeThrough(new TextDecoderStream()).getReader();
  let first=await rd.read(),buf=first.done?'':first.value;

@@ -24,7 +24,7 @@ function hinweis(){if(A.neu)return;A.neu=true;var d=document.createElement('div'
  var x=document.createElement('button');x.textContent='Später';x.style.cssText='font:14px system-ui,sans-serif;background:none;color:#c9b48a;border:1px solid #6b5a3a;border-radius:5px;padding:6px 10px;cursor:pointer';x.onclick=function(){d.remove()};
  d.appendChild(s);d.appendChild(b);d.appendChild(x);document.body.appendChild(d)}
 function pruefen(){A.last=Date.now();var p=(Date.now()-A.planAt>3600000)?get('zeitplan.json').then(function(z){if(z&&z.abschnitte)A.plan=z;A.planAt=Date.now()}).catch(function(){}):Promise.resolve();
- return p.then(function(){return get('stand.json')}).then(function(s){A.fehler=0;A.letzte=new Date();var m=L.rolle==='sl'?s.sl:s.spieler;if(m&&L.stand&&m!==L.stand)hinweis()})
+ return p.then(function(){return get('stand.json')}).then(function(s){A.fehler=0;A.letzte=new Date();if(L.rolle==='sl'){if(s.sl&&L.stand&&s.sl!==L.stand)hinweis()}else if(s.spieler&&L.stand&&(s.spieler!==L.stand||(s.spieler_v||0)>(L.v||0)))hinweis()})
   .catch(function(){A.fehler++;if(L.rolle!=='sl')return fetch((L.root||'')+'daten/stand.json',{cache:'no-store'}).then(function(r){return r.json()}).then(function(s){if(s.stand&&L.stand&&s.stand!==L.stand)hinweis()}).catch(function(){})})}
 function schritt(){clearTimeout(A.timer);var iv=takt()*1000;
  if(!document.hidden&&!A.neu&&Date.now()-A.last>=iv)pruefen();
