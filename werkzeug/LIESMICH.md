@@ -22,6 +22,7 @@ Nicht veröffentlicht wird je der Arbeitsstand der Spielleitung, nur die exporti
 | Schritt | Inhalt |
 |---|---|
 | Aufteilen | eingebettete Bilder und Musik ab 20 KB werden als Dateien nach `a/` ausgelagert (Name = Prüfsumme), JPEG wird zu WebP (Qualität 80), wenn kleiner |
+| Bilder | seit V10.94 verweist die Spielerkarte auf `bilder/<name>`; die verwiesenen Dateien werden aus dem Ordner `bilder/` des Zweigs `gh-pages` in den Zielordner kopiert (drittes Argument, Vorgabe `../../scherbenwelt-karte/bilder`) |
 | Programmanpassung | drei Stellen, die eingebettete Daten voraussetzten (Compendium-Bilder, Wappen, Musik), akzeptieren auch Dateiverweise; jede Stelle wird mit Zähler geprüft, ein geänderter Programmstand bricht den Umbau ab |
 | Suchmaschinen | `noindex,nofollow` |
 | Boxen beim Öffnen | nur die Liste `KEEP` ist angewählt, alles andere aus und einschaltbar |
@@ -50,10 +51,29 @@ Liegen dauerhaft im Zweig `gh-pages` im Ordner `darstellung/` (nur online, nicht
 python3 karte/werkzeug/panorama_bild.py <Bild> <Kennung> seite 2400 darstellung   # z. B. FH-S008, FF-0139, VB-002
 ```
 
+## Ausgelagerte Bilder (seit V10.94)
+
+Große Bilder (Compendium-Bildblöcke ohne Wappen, Scherbenkarten, Weltkarte; ab 20 KB) liegen nicht mehr im Arbeitsstand:
+
+| Ablage | Verweis in den Daten | Inhalt |
+|---|---|---|
+| Zweig `gh-pages`, Ordner `bilder/` (öffentlich) | `bilder/<name>` | Bilder in Einträgen und Karten, die in der Spielerkarte stehen, auch geschwärzte |
+| Repo `BoHMaybe/scherbenwelt-sl`, Ordner `bilder/` (privat) | `slbild:<name>` | Bilder in Einträgen und Karten nur für die Spielleitung; nie in der Spielerkarte |
+
+`<name>` = erste 16 Zeichen der SHA-1-Prüfsumme des Base64-Inhalts + Endung; der Inhalt wird nicht neu kodiert. Der lokal geöffnete Arbeitsstand lädt `bilder/` von der Webseite und `slbild:` über die GitHub-API mit dem SL-Schlüssel (Schaltfläche unten links, Schlüssel nur im Browser). `bilder/` wird von `uebernehmen.py` nur ergänzt, nie bereinigt.
+
+Nach jeder Änderung, die neue Bilder einbettet (z. B. `compendium_bilder.py`), wird ausgelagert:
+
+```
+python3 karte/werkzeug/auslagern.py <Arbeitsstand_ein.html> <Arbeitsstand_aus.html> <Spielerkarte.html> seite <scherbenwelt-sl> karte/werkzeug/patch1094.js
+```
+
+Die Spielerkarte dient nur zur Einordnung öffentlich/SL (Einträge und Karten, die sie enthält). Der Lauf ist wiederholbar; bereits ausgelagerte Bilder bleiben unverändert. Danach beide Repos committen und pushen, dann Spielerexport und Web-Fassung wie oben. `build.py` kopiert die verwiesenen Dateien aus `bilder/` in den Zielordner und bricht ab, wenn ein `slbild:`-Verweis in der Spielerkarte steht.
+
 ## Bilder im Compendium des Arbeitsstands
 
 ```
 python3 karte/werkzeug/compendium_bilder.py <Arbeitsstand.html> <Bildordner> <Ausgabe.html>
 ```
 
-Zuordnung über den Dateinamen: `TITEL-<Kürzel>` (Titelbild im Geschichtseintrag der Scherbe), `bau-<…>` (Konzeptzeichnung als erster Block im Gebäudeeintrag, wie bei den Schiffen), `legion-<…>-ausruestung` / `-sondergeraet` (am Anfang des Abschnitts „Ausrüstung“; dort für Spieler geschwärzt bis zur Freigabe im Eintrag), `waffe-<name>` / `modul-<name>` (Konzeptblatt im Geschützkatalog bzw. Modulkatalog, unter der Tabelle des Platzes bzw. der Kategorie, zweispaltig in Katalogreihenfolge; Name wie im Katalog, Umlaute als ae/oe/ue, z. B. `waffe-leichte-balliste`, `modul-aethersegel`). Armadas erhalten keine eigenen Ausrüstungsbilder. Gespeichert wird über den Speicherweg der App; ein erneuter Lauf mit gleichem Dateinamen ersetzt das Bild. Danach Spielerexport und Web-Fassung wie oben.
+Zuordnung über den Dateinamen: `TITEL-<Kürzel>` (Titelbild im Geschichtseintrag der Scherbe), `bau-<…>` (Konzeptzeichnung als erster Block im Gebäudeeintrag, wie bei den Schiffen), `legion-<…>-ausruestung` / `-sondergeraet` (am Anfang des Abschnitts „Ausrüstung“; dort für Spieler geschwärzt bis zur Freigabe im Eintrag), `waffe-<name>` / `modul-<name>` (Konzeptblatt im Geschützkatalog bzw. Modulkatalog, unter der Tabelle des Platzes bzw. der Kategorie, zweispaltig in Katalogreihenfolge; Name wie im Katalog, Umlaute als ae/oe/ue, z. B. `waffe-leichte-balliste`, `modul-aethersegel`). Armadas erhalten keine eigenen Ausrüstungsbilder. Gespeichert wird über den Speicherweg der App; ein erneuter Lauf mit gleichem Dateinamen ersetzt das Bild. Danach `auslagern.py` (siehe oben), dann Spielerexport und Web-Fassung wie oben.

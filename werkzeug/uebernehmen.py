@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Gebaute Web-Fassung in den Zweig gh-pages übernehmen.
 Aufruf: python3 uebernehmen.py <gebauter Ordner> <Arbeitskopie gh-pages>
-Übernimmt index.html, .nojekyll und den Ordner a/ (veraltete Dateien in a/ werden gelöscht).
+Übernimmt index.html, .nojekyll und den Ordner a/ (veraltete Dateien in a/ werden gelöscht) sowie neue Dateien in bilder/ (dort wird nie gelöscht).
 Die Ordner panorama/ und darstellung/ und alle übrigen Dateien bleiben unberührt."""
 import os,sys,shutil,filecmp
 SRC,DST=sys.argv[1],sys.argv[2]
@@ -14,4 +14,9 @@ for f in new-old: shutil.copy2(os.path.join(sa,f),os.path.join(da,f));add+=1
 for f in old-new: os.remove(os.path.join(da,f));rm+=1
 for f in new&old:
     if not filecmp.cmp(os.path.join(sa,f),os.path.join(da,f),shallow=False): shutil.copy2(os.path.join(sa,f),os.path.join(da,f));add+=1
-print('übernommen: index.html, a/ +%d -%d, panorama/ und darstellung/ unberührt'%(add,rm))
+sb,db=os.path.join(SRC,'bilder'),os.path.join(DST,'bilder');nb=0
+if os.path.isdir(sb):   # bilder/: nur hinzufügen, nie löschen (auch Bilder, die nur der Arbeitsstand verwendet, z. B. geschwärzte)
+    os.makedirs(db,exist_ok=True)
+    for f in os.listdir(sb):
+        if not os.path.exists(os.path.join(db,f)): shutil.copy2(os.path.join(sb,f),os.path.join(db,f));nb+=1
+print('übernommen: index.html, a/ +%d -%d, bilder/ +%d (nichts gelöscht), panorama/ und darstellung/ unberührt'%(add,rm,nb))

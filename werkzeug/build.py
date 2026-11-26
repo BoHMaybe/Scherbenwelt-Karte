@@ -1,10 +1,13 @@
 # -*- coding: utf-8 -*-
 """Web-Fassung der Spielerkarte: eine Startseite (index.html) + ausgelagerte Bilder/Musik (Ordner a/).
 Inhalt und Programm bleiben unverändert; ersetzt werden nur eingebettete Daten-URIs durch Dateiverweise.
-Aufruf: python3 build.py <Spielerkarte.html> <Zielordner>"""
+Aufruf: python3 build.py <Spielerkarte.html> <Zielordner> [Bilderordner]
+Seit V10.94 verweist die Spielerkarte auf ausgelagerte Bilder 'bilder/<name>' (Ordner bilder/ im Zweig gh-pages).
+Verwiesene Dateien werden aus dem Bilderordner (Vorgabe: ../scherbenwelt-karte/bilder) nach <Zielordner>/bilder kopiert."""
 import re,sys,os,io,base64,hashlib,collections,shutil
 from PIL import Image
 SRC,OUT=sys.argv[1],sys.argv[2]
+BILD=sys.argv[3] if len(sys.argv)>3 else os.path.join(os.path.dirname(os.path.abspath(__file__)),'..','..','scherbenwelt-karte','bilder')
 MIN=20000   # kleinere Einbettungen (Symbole) bleiben in der Seite
 EXT={'image/jpeg':'jpg','image/webp':'webp','image/png':'png','audio/mpeg':'mp3','image/gif':'gif'}
 s=open(SRC,encoding='utf-8').read()
@@ -30,13 +33,15 @@ raw2=re.sub(r'data:([a-z]+/[a-z0-9+.-]+);base64,([A-Za-z0-9+/=]+)',rep,raw)
 for f in os.listdir(A):
     if f not in keep: os.remove(os.path.join(A,f))
 # Programmstellen, die eingebettete Daten voraussetzen, auf Dateiverweise erweitern (nur Web-Fassung)
-def patch(old,new,n):
+def patch(old,new,n,done=None):
     global head,tail
-    c=head.count(old)+tail.count(old); assert c==n,('Programmstelle nicht gefunden',old[:60],c)
+    c=head.count(old)+tail.count(old)
+    if c==0 and done and (head+tail).count(done)>=1: return   # seit V10.94 im Arbeitsstand bereits erweitert
+    assert c==n,('Programmstelle nicht gefunden',old[:60],c)
     head=head.replace(old,new); tail=tail.replace(old,new)
 REF=r'a\/[0-9a-f]{16}\.(?:webp|jpg|png|gif)'
-patch(r"/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(b.src||'')", r"/^(?:data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+|"+REF+r")$/.test(b.src||'')",1)
-patch(r"/^data:image\/(jpeg|png|webp);base64,/.test(b.src||'')", r"/^(?:data:image\/(jpeg|png|webp);base64,|"+REF+r")/.test(b.src||'')",1)
+patch(r"/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(b.src||'')", r"/^(?:data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+|"+REF+r")$/.test(b.src||'')",1,done=r"slbild:[0-9a-f]{16}")
+patch(r"/^data:image\/(jpeg|png|webp);base64,/.test(b.src||'')", r"/^(?:data:image\/(jpeg|png|webp);base64,|"+REF+r")/.test(b.src||'')",1,done=r"slbild:[0-9a-f]{16}")
 patch("const p=new Promise((res,rej)=>{try{const bin=atob(src.slice(src.indexOf(',')+1))", "const p=!/^data:/.test(src)?fetch(src).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.arrayBuffer()}).then(b=>new Promise((res,rej)=>V923.ctx.decodeAudioData(b,res,rej))):new Promise((res,rej)=>{try{const bin=atob(src.slice(src.indexOf(',')+1))",1)
 assert head.count('<meta name="viewport"')==1
 head=head.replace('<meta name="viewport"','<meta name="robots" content="noindex,nofollow">\n<meta name="viewport"',1)
@@ -89,6 +94,14 @@ _J2=json.loads(raw2)['sl7']['journal'];assert not any(k in _J2['media'] for k in
 print('Journalbilder entfernt:',_rm,'verbleibende Medien:',sorted(_J2['media']))
 exec(open(os.path.join(os.path.dirname(os.path.abspath(__file__)),'pano_inject.py'),encoding='utf-8').read())
 html=head+raw2+tail
+assert 'slbild:' not in raw2,'SL-exklusiver Bildverweis in der Spielerkarte'
+BO=os.path.join(OUT,'bilder');os.makedirs(BO,exist_ok=True);_bm=[]
+for f in sorted(set(re.findall(r'bilder/([0-9a-f]{16}\.(?:webp|jpg|png|gif))',raw2))):
+    q=os.path.join(BILD,f)
+    if os.path.isfile(q): shutil.copy2(q,os.path.join(BO,f))
+    else: _bm.append(f)
+assert not _bm,('Bilder fehlen im Bilderordner',BILD,_bm[:5])
+print('Bilder (bilder/): %d Dateien'%len(os.listdir(BO)))
 for f in os.listdir(A):
     if ('a/'+f) not in html: os.remove(os.path.join(A,f));print('Datei entfernt',f)
 open(os.path.join(OUT,'index.html'),'w',encoding='utf-8').write(html);open(os.path.join(OUT,'.nojekyll'),'w').write('')
