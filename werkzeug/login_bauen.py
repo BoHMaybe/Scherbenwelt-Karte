@@ -37,9 +37,32 @@ TD=os.path.join(SL,'sl','teile');os.makedirs(TD,exist_ok=True)
 for f in os.listdir(TD): os.remove(os.path.join(TD,f))
 alt=os.path.join(SL,'sl','arbeitsstand.html.gz')
 if os.path.exists(alt): os.remove(alt)
-sgz=gzip.compress(arb,6,mtime=0);T=2*2**20;n=0
+# SL-Webfassung: eingebettete Musik/Bilder ab 20 KB, die bereits öffentlich in gh-pages/a/ liegen, durch Verweise ersetzen
+# (weniger Speicher im Browser, v. a. iPhone). Nicht öffentliche Einbettungen bleiben eingebettet. Arbeitsstand selbst unverändert.
+import re
+def slweb(b):
+    t=b.decode('utf-8');m=re.search(r'(<script id="atlas-data" type="application/json">)(.*?)(</script>)',t,re.S)
+    hd,raw,tl=t[:m.start(2)],m.group(2),t[m.end(2):]
+    AD=os.path.join(PUB,'a');pa={f.split('.')[0]:f for f in os.listdir(AD)} if os.path.isdir(AD) else {}
+    st={'ref':0,'mb':0.0,'eingebettet':0}
+    def rep(mm):
+        x=mm.group(2)
+        if len(x)<20000: return mm.group(0)
+        k=hashlib.sha1(x.encode()).hexdigest()[:16]
+        if k in pa: st['ref']+=1;st['mb']+=len(x)*3/4/2**20;return 'a/'+pa[k]
+        st['eingebettet']+=1;return mm.group(0)
+    raw2=re.sub(r'data:([a-z]+/[a-z0-9+.-]+);base64,([A-Za-z0-9+/=]+)',rep,raw)
+    old="const p=new Promise((res,rej)=>{try{const bin=atob(src.slice(src.indexOf(',')+1))"
+    new="const p=!/^data:/.test(src)?fetch(src).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.arrayBuffer()}).then(b=>new Promise((res,rej)=>V923.ctx.decodeAudioData(b,res,rej))):new Promise((res,rej)=>{try{const bin=atob(src.slice(src.indexOf(',')+1))"
+    c=(hd+tl).count(old)
+    if c: assert c==1;hd=hd.replace(old,new);tl=tl.replace(old,new)
+    json.loads(raw2)
+    print('SL-Webfassung: %d Verweise auf a/ (%.1f MB), %d nicht öffentliche Einbettungen bleiben'%(st['ref'],st['mb'],st['eingebettet']))
+    return (hd+raw2+tl).encode('utf-8')
+arbw=slweb(arb)
+sgz=gzip.compress(arbw,6,mtime=0);T=2*2**20;n=0
 for i in range(0,len(sgz),T): open(os.path.join(TD,'a%03d.bin'%n),'wb').write(sgz[i:i+T]);n+=1
-json.dump({'teile':n,'groesse':len(sgz),'sha1':hashlib.sha1(sgz).hexdigest(),'stand':hashlib.sha1(arb).hexdigest()[:12]},open(os.path.join(TD,'index.json'),'w'))
+json.dump({'teile':n,'groesse':len(sgz),'sha1':hashlib.sha1(sgz).hexdigest(),'stand':hashlib.sha1(arbw).hexdigest()[:12],'mb':round(len(arbw)/2**20,1)},open(os.path.join(TD,'index.json'),'w'))
 # Hülle
 h=open(os.path.join(HERE,'login_huelle.html'),encoding='utf-8').read()
 assert h.count("'__ROOT__'")==1
