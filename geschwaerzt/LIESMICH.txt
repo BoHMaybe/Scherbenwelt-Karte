@@ -1,0 +1,8 @@
+Bilddaten geschwärzter Compendium-Einträge (nur Web-Fassung)
+
+Konzeptzeichnungen der 17 Magiegebäude (Gruppe Gebäude/Magie) sowie Ausrüstung und Sondergerät bzw. Spezialartefakt
+der 14 Legiones Sanctae und 19 Speziallegionen (Abschnitt Ausrüstung). Diese Stellen sind für Spieler geschwärzt;
+im Atlas erscheint an der Bildstelle der Balken "Abbildung geschwärzt". Die Dateien hier sind nicht verlinkt.
+Bei Freigabe im Arbeitsstand und neuem Spielerexport kommt das Bild über den Ordner a/ in die Seite;
+die Datei hier kann dann entfallen.
+Dateiname = Kennung des Bildes, z. B. bau-sendungsturm.webp, legion-xi-ausruestung.webp, legion-s04-sondergeraet.webp.
