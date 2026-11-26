@@ -2,6 +2,9 @@
 <html lang="de"><head><meta charset="utf-8"><meta name="robots" content="noindex,nofollow">
 <meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark">
 <title>Scherbenwelt Atlas · Anmeldung</title>
+<link rel="manifest" href="app/manifest.webmanifest"><link rel="apple-touch-icon" href="app/apple-touch-icon.png"><link rel="icon" type="image/png" href="app/icon-192.png">
+<meta name="theme-color" content="#0e0c0a"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Scherbenwelt"><meta name="apple-mobile-web-app-status-bar-style" content="black">
 <style>
 :root{--bg:#0e0c0a;--panel:#1b1712;--line:#5a4a30;--gold:#c9a24a;--text:#efe3c6;--muted:#a8987a;--err:#e07a6a}
 *{box-sizing:border-box}html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font:16px/1.45 Georgia,'Times New Roman',serif}
@@ -43,16 +46,25 @@ async function getBuf(u,opt,size){const r=await fetch(u,opt||{});if(!r.ok)throw 
  const total=size||+r.headers.get('content-length')||0;if(!r.body||!total)return new Uint8Array(await r.arrayBuffer());
  const rd=r.body.getReader(),parts=[];let n=0;for(;;){const {done,value}=await rd.read();if(done)break;parts.push(value);n+=value.length;prog(Math.min(.95,n/total))}
  const out=new Uint8Array(n);let o=0;for(const p of parts){out.set(p,o);o+=p.length}return out}
+/* Gerätespeicher (IndexedDB): zuletzt geladene Fassung je Rolle; neu geladen wird nur bei geänderter Fassung (Stufe 2b) */
+const DB='scherbenwelt',ST='fassung';
+function idb(){return new Promise((ok,no)=>{try{const r=indexedDB.open(DB,1);r.onupgradeneeded=()=>r.result.createObjectStore(ST);r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error)}catch(e){no(e)}})}
+async function cGet(k){try{const d=await idb();return await new Promise(ok=>{const q=d.transaction(ST).objectStore(ST).get(k);q.onsuccess=()=>ok(q.result||null);q.onerror=()=>ok(null)})}catch(e){return null}}
+async function cPut(k,v){try{const d=await idb();await new Promise(ok=>{const t=d.transaction(ST,'readwrite');t.objectStore(ST).put(v,k);t.oncomplete=ok;t.onerror=ok;t.onabort=ok})}catch(e){}}
+async function apiJson(tok,path){const r=await fetch('https://api.github.com/repos/'+SLREPO+'/contents/'+path,{cache:'no-cache',headers:{Authorization:'Bearer '+tok,Accept:'application/vnd.github.raw+json'}});
+ if(r.status===401||r.status===403||r.status===404)throw new Error('ZUGRIFF');if(!r.ok)throw new Error('HTTP '+r.status);return r.json()}
 async function unlock(name,pw){
  let z;try{z=await getJson(ROOT+'zugang/zugaenge.json')}catch(x){throw new Error(/HTTP 404/.test(x.message)?'Noch keine Zugänge eingerichtet.':x.message)}const e=(z.nutzer||{})[name];if(!e)throw new Error('FALSCH');
  const km=await crypto.subtle.importKey('raw',te.encode(pw),'PBKDF2',false,['deriveKey']);
  const k=await crypto.subtle.deriveKey({name:'PBKDF2',salt:b64(e.salt),iterations:z.iter,hash:'SHA-256'},km,{name:'AES-GCM',length:256},false,['decrypt']);
  try{const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:b64(e.iv)},k,b64(e.ct));return JSON.parse(new TextDecoder().decode(pt))}catch(x){throw new Error('FALSCH')}}
 async function openAtlas(P){
- msg(P.rolle==='sl'?'Spielleiter-Fassung wird geladen …':'Atlas wird geladen …');prog(0);let gzb;
+ msg(P.rolle==='sl'?'Spielleiter-Fassung wird geladen …':'Atlas wird geladen …');prog(0);let gzb,stand='';
  if(P.rolle==='sl'){
   const H={Authorization:'Bearer '+P.tokens.sl,Accept:'application/vnd.github.raw+json'},U='https://api.github.com/repos/'+SLREPO+'/contents/'+SLDIR;
-  const ix=JSON.parse(new TextDecoder().decode(await getBuf(U+'index.json',{cache:'no-store',headers:H},1)));prog(0);
+  let ix;try{ix=await apiJson(P.tokens.sl,SLDIR+'index.json')}catch(e){const c0=await cGet('sl');if(e.message!=='ZUGRIFF'&&c0&&c0.blob)ix={stand:c0.stand,groesse:c0.blob.size};else throw e}prog(0);stand=ix.stand;
+  const c=await cGet('sl');if(c&&c.stand===ix.stand&&c.blob&&c.blob.size===ix.groesse){gzb=c.blob;msg('Spielleiter-Fassung aus dem Gerätespeicher …')}
+  else{
   const parts=new Array(ix.teile);let next=0,got=0;
   const one=async i=>{for(let v=1;;v++){try{const r=await fetch(U+'a'+String(i).padStart(3,'0')+'.bin?s='+ix.stand,{headers:H});
     if(r.status===401||r.status===403||r.status===404)throw new Error('ZUGRIFF');if(!r.ok)throw new Error('HTTP '+r.status);
@@ -61,18 +73,22 @@ async function openAtlas(P){
   const run=async()=>{while(next<ix.teile)await one(next++)};
   await Promise.all([run(),run(),run(),run()]);
   if(got!==ix.groesse)throw new Error('SL-Fassung unvollständig ('+got+' / '+ix.groesse+' Byte)');
-  gzb=new Blob(parts);parts.length=0;try{localStorage.setItem('scherbenweltSLSchluessel',P.tokens.sl)}catch(e){}
+  gzb=new Blob(parts);parts.length=0;await cPut('sl',{stand:ix.stand,blob:gzb})}
+  try{localStorage.setItem('scherbenweltSLSchluessel',P.tokens.sl)}catch(e){}
  }else{
-  let st='';try{st=(await getJson(ROOT+'daten/stand.json')).stand||''}catch(e){}
-  const u8=await getBuf(ROOT+'daten/spieler.bin?v='+encodeURIComponent(st));
+  let st='';try{st=(await apiJson((P.tokens||{}).sl||'','steuerung/stand.json')).spieler||''}catch(e){}
+  if(!st)try{st=(await getJson(ROOT+'daten/stand.json')).stand||''}catch(e){}stand=st;
+  const c=await cGet('spieler');let u8;
+  if(c&&c.bin&&(!st||c.stand===st)){if(!st)stand=c.stand;u8=new Uint8Array(await c.bin.arrayBuffer());msg('Atlas aus dem Gerätespeicher …')}
+  else{u8=await getBuf(ROOT+'daten/spieler.bin?v='+encodeURIComponent(st));if(st)await cPut('spieler',{stand:st,bin:new Blob([u8])})}
   const k=await crypto.subtle.importKey('raw',b64(P.schluessel),{name:'AES-GCM'},false,['decrypt']);
   let pt;try{pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:u8.slice(0,12)},k,u8.slice(12))}catch(e){throw new Error('DATEN')}
   gzb=new Blob([pt]);pt=null;
  }
  prog(1);msg('Atlas wird geöffnet …');
- const info={name:P.name,rolle:P.rolle,tokens:P.tokens||{},repo:P.repo||null,root:ROOT};
- const pre='<base href="'+ROOT+'"><script>window.SW_LOGIN='+JSON.stringify(info).replace(/</g,'\\u003c')+';<\/script>';
- const post='<script>(function(){var L=window.SW_LOGIN;if(!L)return;var d=document.createElement("div");d.id="swLoginBadge";d.style.cssText="position:fixed;right:8px;bottom:8px;z-index:9000;font:12px system-ui,sans-serif;background:#1f1b16;color:#f6e7c4;border:1px solid #6b5a3a;border-radius:6px;padding:4px 8px;opacity:.85";d.innerHTML="";var s=document.createElement("span");s.textContent=(L.rolle==="sl"?"SL · ":"")+L.name+" · ";var a=document.createElement("a");a.href="#";a.textContent="Abmelden";a.style.color="#e8c56a";a.onclick=function(e){e.preventDefault();try{sessionStorage.removeItem("'+KEY+'");localStorage.removeItem("'+KEY+'");if(L.rolle==="sl")localStorage.removeItem("scherbenweltSLSchluessel")}catch(x){}location.reload()};d.appendChild(s);d.appendChild(a);document.body.appendChild(d)})();<\/script>';
+ const info={name:P.name,rolle:P.rolle,tokens:P.tokens||{},repo:P.repo||null,root:ROOT,stand:stand};
+ const pre='<base href="'+ROOT+'"><link rel="manifest" href="app/manifest.webmanifest"><link rel="apple-touch-icon" href="app/apple-touch-icon.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Scherbenwelt"><script>window.SW_LOGIN='+JSON.stringify(info).replace(/</g,'\\u003c')+';<\/script>';
+ const post='<script>(function(){var L=window.SW_LOGIN;if(!L)return;var d=document.createElement("div");d.id="swLoginBadge";d.style.cssText="position:fixed;right:8px;bottom:8px;z-index:9000;font:12px system-ui,sans-serif;background:#1f1b16;color:#f6e7c4;border:1px solid #6b5a3a;border-radius:6px;padding:4px 8px;opacity:.85";d.innerHTML="";var s=document.createElement("span");s.textContent=(L.rolle==="sl"?"SL · ":"")+L.name+" · ";var a=document.createElement("a");a.href="#";a.textContent="Abmelden";a.style.color="#e8c56a";a.onclick=function(e){e.preventDefault();try{sessionStorage.removeItem("'+KEY+'");localStorage.removeItem("'+KEY+'");if(L.rolle==="sl")localStorage.removeItem("scherbenweltSLSchluessel");indexedDB.deleteDatabase("scherbenwelt")}catch(x){}setTimeout(function(){location.reload()},150)};d.appendChild(s);d.appendChild(a);document.body.appendChild(d)})();<\/script><script src="app/abfrage.js?v=21353dee0f"><\/script>';
  /* stückweise entpacken und schreiben: der Atlas liegt nie zusätzlich als Ganzes im Speicher (iPhone) */
  const rd=gzb.stream().pipeThrough(new DecompressionStream('gzip')).pipeThrough(new TextDecoderStream()).getReader();
  let first=await rd.read(),buf=first.done?'':first.value;
@@ -88,6 +104,7 @@ $('f').addEventListener('submit',async ev=>{ev.preventDefault();const name=$('u'
  try{const P=await unlock(name,pw);const s=JSON.stringify(P);try{sessionStorage.setItem(KEY,s);if($('r').checked)localStorage.setItem(KEY,s);else localStorage.removeItem(KEY)}catch(e){}await openAtlas(P)}
  catch(e){prog(null);$('b').disabled=false;
   msg(e.message==='FALSCH'?'Benutzername oder Passwort falsch.':e.message==='ZUGRIFF'?'Kein Zugriff auf die Spielleiter-Fassung (Schlüssel prüfen).':e.message==='DATEN'?'Atlas-Daten passen nicht zu diesem Zugang (Zugänge neu erzeugen).':'Fehler beim Laden: '+e.message,true)}});
+try{if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register(ROOT+'sw.js',{scope:ROOT}).catch(()=>{})}catch(e){}
 (async()=>{if(!window.crypto||!crypto.subtle||typeof DecompressionStream==='undefined'||typeof TextDecoderStream==='undefined'){msg('Dieser Browser ist zu alt für den Atlas. Bitte aktuellen Browser verwenden.',true);$('b').disabled=true;return}
  const P=saved();if(P){$('b').disabled=true;try{await openAtlas(P)}catch(e){prog(null);$('b').disabled=false;try{sessionStorage.removeItem(KEY);localStorage.removeItem(KEY)}catch(x){}msg('Bitte erneut anmelden.',true)}}else $('u').focus()})();
 })();
