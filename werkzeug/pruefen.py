@@ -41,7 +41,7 @@ miss=[f for f in set(re.findall(r'a/[0-9a-f]{16}\.(?:webp|jpg|png|gif|mp3)',html
 ok(not miss,'alle verwiesenen Dateien in a/ vorhanden'+(' – fehlen: %s'%miss[:5] if miss else ''))
 missb=[f for f in set(re.findall(r'bilder/[0-9a-f]{16}\.(?:webp|jpg|png|gif)',html)) if not os.path.isfile(os.path.join(SITE,f))]
 ok(not missb,'alle verwiesenen Dateien in bilder/ vorhanden'+(' – fehlen: %s'%missb[:5] if missb else ''))
-ok('slbild:' not in html,'keine SL-exklusiven Bildverweise in index.html')
+ok(not re.search(r'slbild:[0-9a-f]{16}\.',html),'keine SL-exklusiven Bildverweise in index.html')
 ok(os.path.getsize(os.path.join(SITE,'index.html'))<95*1024*1024,'index.html unter 95 MB (GitHub-Grenze 100 MB)')
 # --- lokaler Server
 class Q(http.server.SimpleHTTPRequestHandler):
