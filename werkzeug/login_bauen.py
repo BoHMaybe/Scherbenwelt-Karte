@@ -56,6 +56,9 @@ def slweb(b):
     new="const p=!/^data:/.test(src)?fetch(src).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.arrayBuffer()}).then(b=>new Promise((res,rej)=>V923.ctx.decodeAudioData(b,res,rej))):new Promise((res,rej)=>{try{const bin=atob(src.slice(src.indexOf(',')+1))"
     c=(hd+tl).count(old)
     if c: assert c==1;hd=hd.replace(old,new);tl=tl.replace(old,new)
+    # Touch-Bedienung (V10.67) ist im Arbeitsstand nur für die Spielerdatei aktiv; in der SL-Webfassung auch für den SL (nur bei Touchscreen, PC unverändert)
+    o2="function v1thInit(){if(V1TH.on||!atlas||!atlas.player)return;";n2="function v1thInit(){if(V1TH.on||!atlas)return;"
+    c=(hd+tl).count(o2);assert c==1,('v1thInit',c);hd=hd.replace(o2,n2);tl=tl.replace(o2,n2)
     json.loads(raw2)
     print('SL-Webfassung: %d Verweise auf a/ (%.1f MB), %d nicht öffentliche Einbettungen bleiben'%(st['ref'],st['mb'],st['eingebettet']))
     return (hd+raw2+tl).encode('utf-8')
