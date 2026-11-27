@@ -130,3 +130,11 @@ Backup der Webseite vor der Umstellung: privates Repo scherbenwelt-sl, Zweig `ba
 - Spielerdatei: `besitz` (vollständige Heerdaten je Besitzer, beim Export aus dem SL-Stand erzeugt).
 - Gebäude: Menge = Grundmenge × fP × cr; Gewinn = Grundgewinn × ((1+K)·f − K), f = fP·cr·tf·rt, K = 0,15 (Fixkostenanteil, für Spieler nicht angezeigt).
 - Test: `online/test97.py` (Spieler bernd mit CU-A01/FH-0503 in einer Testkopie, SL genehmigt und stempelt).
+
+## V10.98 · Verschlankung und Ladezeiten
+
+Reihenfolge: `v1098/auslagern98.py <v10_97.html> <A.html> <gh-pages>` → `v1098/oeko98_einbauen.py <A.html> <B.html>` → `v1098/oeko_cache.py <B.html> <Arbeitsstand_v10_98.html>` → Spielerexport (`online/exp.py`) → `build.py` → `pruefen.py` → `uebernehmen.py` → `medien/` nach gh-pages kopieren → `login_bauen.py … live`.
+- Punkte 1–2 (`auslagern98.py`): Musik und Krankheitsstudien (≥ 20 KB) nach `gh-pages/medien/<sha1-16>.<ext>`; lokal geöffnet lädt `swMedia()` sie von der Webseite. Journalmedien, Startbild, Legionsbilder bleiben eingebettet.
+- Punkt 3: Excel-Bibliothek nur im lokalen Arbeitsstand (build.py und SL-Webfassung entfernen sie; Excel-Import zeigt dort einen Hinweis).
+- Punkt 4 (`oeko98.js`, `oeko_cache.py`): Wirtschafts-Startspeicher. Die Lieferkettenrechnung beim Start wird aufgezeichnet und als `atlas-eco` (`data-sw`, beim Speichern/Export entfernt) eingebettet. Verwendung nur bei gleichem Programm, gleichen Daten, gleichen Online-Änderungen, Bit-gleichem Zustand vor jeder Rechnung (ganzer Atlas, Faktoren, Ausgangswerte, Hilfswerte), Chromium mit gleichem Exponential-Prüfwert und nur vor der ersten Bedienung. Das Werkzeug prüft nach dem Einbetten den Gesamtzustand (Atlas + Programmwerte) gegen die Rechnung ohne Speicher; bei Abweichung wird ohne Speicher geschrieben (Rückgabe 2). `login_bauen.py` zeichnet die SL-Webfassung eigens auf (`SW_OEKO=0` schaltet ab).
+- Punkt 6 (`lazy98.js`, build.py): Spieler-Webfassung enthält Compendium-Seiten je Eintrag gepackt (`z0:`/`z1:` + Base64(Deflate(JSON))); sie werden beim ersten Lesen von `pages` entpackt. `online_veroeffentlichen.py` vergleicht entpackt (Spieler-Änderungen bleiben inhaltlich). Lokaler Arbeitsstand und SL-Fassung unverändert vollständig.

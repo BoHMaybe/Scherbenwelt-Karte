@@ -4,7 +4,7 @@ Inhalt und Programm bleiben unverändert; ersetzt werden nur eingebettete Daten-
 Aufruf: python3 build.py <Spielerkarte.html> <Zielordner> [Bilderordner]
 Seit V10.94 verweist die Spielerkarte auf ausgelagerte Bilder 'bilder/<name>' (Ordner bilder/ im Zweig gh-pages).
 Verwiesene Dateien werden aus dem Bilderordner (Vorgabe: ../scherbenwelt-karte/bilder) nach <Zielordner>/bilder kopiert."""
-import re,sys,os,io,base64,hashlib,collections,shutil
+import re,sys,os,io,base64,hashlib,collections,shutil,zlib,json
 from PIL import Image
 SRC,OUT=sys.argv[1],sys.argv[2]
 BILD=sys.argv[3] if len(sys.argv)>3 else os.path.join(os.path.dirname(os.path.abspath(__file__)),'..','..','scherbenwelt-karte','bilder')
@@ -14,6 +14,14 @@ s=open(SRC,encoding='utf-8').read()
 m=re.search(r'(<script id="atlas-data" type="application/json">)(.*?)(</script>)',s,re.S)
 head,raw,tail=s[:m.start(2)],m.group(2),s[m.end(2):]
 A=os.path.join(OUT,'a');os.makedirs(A,exist_ok=True)
+# V10.98: SL-exklusive Bilder, die inzwischen für Spieler sichtbar sind (freigegebene Inhalte), aus dem SL-Bilderordner einbetten;
+# sie werden unten wie alle Einbettungen als öffentliche Datei (a/) abgelegt. Ordner: Umgebungsvariable SW_SLBILDER.
+_SLB=os.environ.get('SW_SLBILDER') or os.path.join(os.path.dirname(os.path.abspath(__file__)),'..','..','scherbenwelt-sl','bilder')
+def _slb(mm):
+    f=os.path.join(_SLB,mm.group(1))
+    if not os.path.exists(f): return mm.group(0)
+    st['slbild_eingebettet']+=1;return 'data:'+{'webp':'image/webp','jpg':'image/jpeg','png':'image/png','gif':'image/gif'}[mm.group(2)]+';base64,'+base64.b64encode(open(f,'rb').read()).decode()
+raw=re.sub(r'slbild:([0-9a-f]{16}\.(webp|jpg|png|gif))',_slb,raw)
 keep=set();st=collections.Counter();cache={}
 def rep(mm):
     mime,b=mm.group(1),mm.group(2)
@@ -42,7 +50,16 @@ def patch(old,new,n,done=None):
 REF=r'a\/[0-9a-f]{16}\.(?:webp|jpg|png|gif)'
 patch(r"/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(b.src||'')", r"/^(?:data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+|"+REF+r")$/.test(b.src||'')",1,done=r"slbild:[0-9a-f]{16}")
 patch(r"/^data:image\/(jpeg|png|webp);base64,/.test(b.src||'')", r"/^(?:data:image\/(jpeg|png|webp);base64,|"+REF+r")/.test(b.src||'')",1,done=r"slbild:[0-9a-f]{16}")
-patch("const p=new Promise((res,rej)=>{try{const bin=atob(src.slice(src.indexOf(',')+1))", "const p=!/^data:/.test(src)?fetch(src).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.arrayBuffer()}).then(b=>new Promise((res,rej)=>V923.ctx.decodeAudioData(b,res,rej))):new Promise((res,rej)=>{try{const bin=atob(src.slice(src.indexOf(',')+1))",1)
+patch("const p=new Promise((res,rej)=>{try{const bin=atob(src.slice(src.indexOf(',')+1))", "const p=!/^data:/.test(src)?fetch(src).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.arrayBuffer()}).then(b=>new Promise((res,rej)=>V923.ctx.decodeAudioData(b,res,rej))):new Promise((res,rej)=>{try{const bin=atob(src.slice(src.indexOf(',')+1))",1,done='fetch(swMedia(src))')
+# V10.98: Excel-Bibliothek nur im lokalen Arbeitsstand (Excel-Import); Web-Fassung ohne
+_xi=head.find('/*! xlsx.js')
+if _xi<0: _xi=tail.find('/*! xlsx.js');_T='tail'
+else: _T='head'
+if _xi>=0:
+    _t=head if _T=='head' else tail;_a=_t.rfind('<script',0,_xi);_b=_t.find('</script>',_xi)+9;_t=_t[:_a]+_t[_b:]
+    if _T=='head': head=_t
+    else: tail=_t
+    print('Excel-Bibliothek entfernt')
 assert head.count('<meta name="viewport"')==1
 head=head.replace('<meta name="viewport"','<meta name="robots" content="noindex,nofollow">\n<meta name="viewport"',1)
 # Voreinstellung der Boxen beim Öffnen (nur Web-Fassung): nur KEEP bleibt angewählt, alles andere startet aus und bleibt einschaltbar
@@ -93,6 +110,18 @@ for _id in _rm:
 _J2=json.loads(raw2)['sl7']['journal'];assert not any(k in _J2['media'] for k in _rm)
 print('Journalbilder entfernt:',_rm,'verbleibende Medien:',sorted(_J2['media']))
 exec(open(os.path.join(os.path.dirname(os.path.abspath(__file__)),'pano_inject.py'),encoding='utf-8').read())
+# V10.98 Punkt 6: Compendium-Seiten je Eintrag als Text; die Spielerfassung wandelt sie erst beim ersten Lesen um (lazy98.js)
+if 'function swLazyPages' in head+tail:
+    _D=json.loads(raw2);_n=0;_chk={}
+    for _a in (_D.get('compendium') or {}).get('articles') or []:
+        if isinstance(_a.get('pages'),list):
+            _chk[_a['id']]=json.dumps(_a['pages'],sort_keys=True);_t=json.dumps(_a['pages'],ensure_ascii=False,separators=(',',':'))
+            _co=zlib.compressobj(9,zlib.DEFLATED,-15);_z=_co.compress(_t.encode('utf-8'))+_co.flush()
+            _a['pages']=('z1:' if 'slbild:' in _t else 'z0:')+base64.b64encode(_z).decode();_n+=1
+    raw2=json.dumps(_D,ensure_ascii=False,separators=(',',':')).replace('<','\\u003c')
+    _D2=json.loads(raw2)
+    assert all(json.dumps(json.loads(zlib.decompress(base64.b64decode(_a['pages'][3:]),-15).decode('utf-8')),sort_keys=True)==_chk[_a['id']] for _a in _D2['compendium']['articles'] if _a['id'] in _chk),'Compendium-Seiten nicht verlustfrei'
+    print('Compendium: Seiten von %d Einträgen gepackt (bei Bedarf gelesen)'%_n);del _D,_D2,_chk
 html=head+raw2+tail
 assert 'slbild:' not in raw2,'SL-exklusiver Bildverweis in der Spielerkarte'
 BO=os.path.join(OUT,'bilder');os.makedirs(BO,exist_ok=True);_bm=[]

@@ -24,6 +24,7 @@ jobs:
             daten
             steuerung
             werkzeug
+            bilder
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -37,6 +38,8 @@ jobs:
           pip install --quiet playwright==1.47.0 pillow
           python -m playwright install --with-deps chromium
       - name: Veröffentlichen
+        env:
+          SW_SLBILDER: ${{ github.workspace }}/bilder
         run: python werkzeug/online_veroeffentlichen.py "$RUNNER_TEMP/sw"
       - name: Ergebnis hochladen
         run: |

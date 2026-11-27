@@ -6,7 +6,7 @@
    wenden ihn beim Laden an. Neue Bilder (noch nicht auf der Webseite) bleiben eingebettet.
 4. steuerung/stand.json (spieler_v) und online/status.json schreiben. Bei Fehlern: status ok=false mit Meldung, nichts veröffentlicht.
 Aufruf: python3 werkzeug/online_veroeffentlichen.py [Arbeitsordner]"""
-import os,sys,json,gzip,re,base64,hashlib,subprocess,time,datetime,copy,shutil,traceback
+import os,sys,json,gzip,re,base64,hashlib,subprocess,time,datetime,copy,shutil,traceback,zlib
 HERE=os.path.dirname(os.path.abspath(__file__));sys.path.insert(0,HERE);import ops
 TMP=sys.argv[1] if len(sys.argv)>1 else '/tmp/sw-veroeff';T0=time.time()
 def now(): return datetime.datetime.now(datetime.timezone.utc).isoformat(timespec='seconds')
@@ -16,6 +16,13 @@ def rj(p,d=None):
 def wj(p,o,pretty=False):
     os.makedirs(os.path.dirname(p) or '.',exist_ok=True)
     json.dump(o,open(p,'w',encoding='utf-8'),ensure_ascii=False,**({'indent':1} if pretty else {'separators':(',',':')}))
+# V10.98: Compendium-Seiten der Spielerfassung liegen gepackt vor (build.py); Vergleich und Medienprüfung auf den entpackten Seiten
+def unpack(d):
+    for a in ((d.get('compendium') or {}).get('articles') or []):
+        p=a.get('pages')
+        if isinstance(p,str) and p[:3] in ('z0:','z1:'): a['pages']=json.loads(zlib.decompress(base64.b64decode(p[3:]),-15).decode('utf-8'))
+        elif isinstance(p,str) and p[:1]=='[': a['pages']=json.loads(p)
+    return d
 RX=re.compile(r'(<script id="atlas-data" type="application/json">)(.*?)(</script>)',re.S)
 A=rj('online/aenderungen.json');MI=rj('master/teile/index.json');ST=rj('online/status.json',{}) or {}
 def status(ok,meldung='',**kw):
@@ -42,8 +49,8 @@ def main():
     r=subprocess.run([sys.executable,os.path.join(HERE,'build.py'),os.path.join(TMP,'spieler.html'),os.path.join(TMP,'web'),'-'],capture_output=True,text=True,timeout=900)
     print(r.stdout[-2500:],r.stderr[-2500:])
     if r.returncode: raise RuntimeError('Web-Fassung nicht gebaut: '+(r.stderr.strip().splitlines() or ['?'])[-1][:200])
-    web=open(os.path.join(TMP,'web','index.html'),encoding='utf-8').read();txt=RX.search(web).group(2)
-    W=json.load(gzip.open('daten/spieler-basis.json.gz','rt',encoding='utf-8'));P0=W['atlas'];stand=W['stand']
+    web=open(os.path.join(TMP,'web','index.html'),encoding='utf-8').read();txt=json.dumps(unpack(json.loads(RX.search(web).group(2))),ensure_ascii=False,separators=(',',':'))
+    W=json.load(gzip.open('daten/spieler-basis.json.gz','rt',encoding='utf-8'));P0=unpack(W['atlas']);stand=W['stand']
     # neue Bilder/Musik (noch nicht auf der Webseite): eingebettet lassen
     alt=set(re.findall(r'a/[0-9a-f]{16}\.[a-z0-9]+',json.dumps(P0)))
     MIME={'webp':'image/webp','jpg':'image/jpeg','png':'image/png','gif':'image/gif','mp3':'audio/mpeg'};neu=[]

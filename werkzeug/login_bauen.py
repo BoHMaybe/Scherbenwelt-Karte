@@ -10,7 +10,7 @@ Erzeugt:
   sl/zugang/spielerschluessel.txt  Datenschlüssel (Base64). Wird einmal erzeugt und danach wiederverwendet,
                                    damit bestehende Zugänge gültig bleiben.
 Die Datei zugang/zugaenge.json erzeugt das Zugangswerkzeug (Zugangswerkzeug.html) – sie wird hier nicht verändert."""
-import sys,os,gzip,json,base64,hashlib,secrets
+import sys,os,gzip,json,base64,hashlib,secrets,re
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 WEB,ARB,PUB,SL=sys.argv[1:5];ZIEL=sys.argv[5] if len(sys.argv)>5 else 'test'
 assert ZIEL in('test','live')
@@ -18,6 +18,10 @@ HERE=os.path.dirname(os.path.abspath(__file__))
 web=open(WEB,'rb').read();arb=open(ARB,'rb').read()
 assert b'slbild:' not in web or not __import__('re').search(rb'slbild:[0-9a-f]{16}\.',web),'SL-Bildverweis in Spielerfassung'
 assert b'id="atlas-data"' in web and b'id="atlas-data"' in arb
+# V10.98: alle Verweise auf medien/ müssen auf der Webseite liegen (Musik, Krankheitsstudien)
+_mref=set(re.findall(rb'medien/([0-9a-f]{16}\.(?:mp3|webp|jpg|png))',web+arb))
+_mfehlt=[x.decode() for x in _mref if not os.path.exists(os.path.join(PUB,'medien',x.decode()))]
+assert not _mfehlt,('medien/ fehlt auf der Webseite',_mfehlt[:5])
 # Datenschlüssel
 kf=os.path.join(SL,'zugang','spielerschluessel.txt');os.makedirs(os.path.dirname(kf),exist_ok=True)
 if os.path.exists(kf): key=base64.b64decode(open(kf).read().strip())
@@ -59,10 +63,28 @@ def slweb(b):
     # Touch-Bedienung (V10.67) ist im Arbeitsstand nur für die Spielerdatei aktiv; in der SL-Webfassung auch für den SL (nur bei Touchscreen, PC unverändert)
     o2="function v1thInit(){if(V1TH.on||!atlas||!atlas.player)return;";n2="function v1thInit(){if(V1TH.on||!atlas)return;"
     c=(hd+tl).count(o2);assert c==1,('v1thInit',c);hd=hd.replace(o2,n2);tl=tl.replace(o2,n2)
+    # V10.98: Excel-Bibliothek nur im lokalen Arbeitsstand
+    for _k in ('hd','tl'):
+        _t=hd if _k=='hd' else tl;_xi=_t.find('/*! xlsx.js')
+        if _xi>=0:
+            _a=_t.rfind('<script',0,_xi);_b=_t.find('</script>',_xi)+9;_t=_t[:_a]+_t[_b:]
+            if _k=='hd': hd=_t
+            else: tl=_t
     json.loads(raw2)
     print('SL-Webfassung: %d Verweise auf a/ (%.1f MB), %d nicht öffentliche Einbettungen bleiben'%(st['ref'],st['mb'],st['eingebettet']))
     return (hd+raw2+tl).encode('utf-8')
 arbw=slweb(arb)
+# V10.98 Punkt 4: Wirtschafts-Startspeicher der SL-Webfassung (eigene Aufzeichnung und Prüfung, Programm/Daten weichen vom Arbeitsstand ab).
+# Rückgabe 2 = Prüfung nicht bestanden: Fassung ohne Startspeicher (rechnet wie bisher). SW_OEKO=0 überspringt (Startspeicher entfernt).
+import subprocess,tempfile,shutil as _sh
+_td=tempfile.mkdtemp(prefix='slweb-');_ei,_ao=os.path.join(_td,'ein.html'),os.path.join(_td,'aus.html');open(_ei,'wb').write(arbw)
+if os.environ.get('SW_OEKO','1')=='0':
+    arbw=re.sub(rb'<script id="atlas-eco"[^>]*>.*?</script>\n?',b'',arbw,flags=re.S);print('SL-Webfassung: ohne Wirtschafts-Startspeicher (SW_OEKO=0)')
+else:
+    _r=subprocess.run([sys.executable,os.path.join(HERE,'v1098','oeko_cache.py'),_ei,_ao,'--slweb'],capture_output=True,text=True)
+    print('SL-Webfassung, Wirtschafts-Startspeicher:\n'+_r.stdout.strip()[-2500:]);assert _r.returncode in (0,2) and os.path.exists(_ao),('Startspeicher',_r.returncode,_r.stderr[-1500:])
+    arbw=open(_ao,'rb').read()
+_sh.rmtree(_td,ignore_errors=True)
 sgz=gzip.compress(arbw,6,mtime=0);T=2*2**20;n=0
 for i in range(0,len(sgz),T): open(os.path.join(TD,'a%03d.bin'%n),'wb').write(sgz[i:i+T]);n+=1
 # V10.96: Kennung des Master-Arbeitsstands (SHA-1 des Atlas-Datentexts) – Basis der Online-Änderungen
