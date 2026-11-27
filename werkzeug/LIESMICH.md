@@ -122,3 +122,11 @@ Backup der Webseite vor der Umstellung: privates Repo scherbenwelt-sl, Zweig `ba
 - Anmeldeseite: SL lädt `online/aenderungen.json`, Spieler `online/spieler-ops.json` und wenden sie beim Laden an (`window.SW_OPS`).
 - Vor jedem Hochladen durch Claude: `online/online_uebernehmen.py <Arbeitsstand> <scherbenwelt-sl> <aus.html>` (Arbeitsstand gewinnt), dann `SW_OPS_UEBERNOMMEN=1 python3 login_bauen.py … live`.
 - Tests: `online/test_flow.py` (Phasen sl, spieler, lokal; vorher `online_veroeffentlichen.py` im SL-Ordner ausführen).
+
+## V10.97 · Spielerbögen Heere und Gebäude, Prüfstempel (Stufe 5)
+
+- `online/apply97.py <v10_96.html> online <v10_97.html>`: `patch1097.js`, Besitz `sl7.owner` (CU-A01 → blutaar).
+- Spieler-Repo: `boegen/heere.json` (Anträge), `boegen/gebaeude.json`; SL-Repo: `online/freigaben.json` (Stempel-Fingerabdrücke je Bogen, Status der Anträge).
+- Spielerdatei: `besitz` (vollständige Heerdaten je Besitzer, beim Export aus dem SL-Stand erzeugt).
+- Gebäude: Menge = Grundmenge × fP × cr; Gewinn = Grundgewinn × ((1+K)·f − K), f = fP·cr·tf·rt, K = 0,15 (Fixkostenanteil, für Spieler nicht angezeigt).
+- Test: `online/test97.py` (Spieler bernd mit CU-A01/FH-0503 in einer Testkopie, SL genehmigt und stempelt).
