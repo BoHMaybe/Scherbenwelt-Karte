@@ -43,7 +43,7 @@ STATE=r"""(names)=>{const R={atlas:{},g:{},miss:[]};for(const k of Object.keys(a
  for(const n of names){let v;try{v=(0,eval)(n)}catch(e){R.miss.push(n);continue}if(typeof v==='function')continue;
   if(n==='originalDocument')v=v.replace(/<script id="atlas-eco"[^>]*>[\s\S]*?<\/script>\n?/,'');
   if(n==='V10MAP')v=Object.assign({},v,{blob:[...v.blob.keys()]});
-  if(n==='V912RK')continue;
+  if(n==='V912RK'||n==='V1100')continue;
   try{R.g[n]=swEcoHash(v)}catch(e){R.g[n]='ERR '+e}}
  try{R.eco={imp:atlas.wkl.imp?atlas.wkl.imp['Sold Legionen und Armadas']:null,net:(atlas.wkl.org.fin['Wüstenscherbe|IMPERIUM']||{}).net,sav:(atlas.wkl.org.fin['Wüstenscherbe|IMPERIUM']||{}).sav}}catch(e){R.eco=String(e)}
  R.text=swEcoHash(document.body.innerText);R.sweco={used:SWECO.used,miss:SWECO.miss,ms:Math.round(SWECO.ms)};return R}"""
