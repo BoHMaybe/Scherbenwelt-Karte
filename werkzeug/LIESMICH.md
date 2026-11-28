@@ -138,3 +138,12 @@ Reihenfolge: `v1098/auslagern98.py <v10_97.html> <A.html> <gh-pages>` → `v1098
 - Punkt 3: Excel-Bibliothek nur im lokalen Arbeitsstand (build.py und SL-Webfassung entfernen sie; Excel-Import zeigt dort einen Hinweis).
 - Punkt 4 (`oeko98.js`, `oeko_cache.py`): Wirtschafts-Startspeicher. Die Lieferkettenrechnung beim Start wird aufgezeichnet und als `atlas-eco` (`data-sw`, beim Speichern/Export entfernt) eingebettet. Verwendung nur bei gleichem Programm, gleichen Daten, gleichen Online-Änderungen, Bit-gleichem Zustand vor jeder Rechnung (ganzer Atlas, Faktoren, Ausgangswerte, Hilfswerte), Chromium mit gleichem Exponential-Prüfwert und nur vor der ersten Bedienung. Das Werkzeug prüft nach dem Einbetten den Gesamtzustand (Atlas + Programmwerte) gegen die Rechnung ohne Speicher; bei Abweichung wird ohne Speicher geschrieben (Rückgabe 2). `login_bauen.py` zeichnet die SL-Webfassung eigens auf (`SW_OEKO=0` schaltet ab).
 - Punkt 6 (`lazy98.js`, build.py): Spieler-Webfassung enthält Compendium-Seiten je Eintrag gepackt (`z0:`/`z1:` + Base64(Deflate(JSON))); sie werden beim ersten Lesen von `pages` entpackt. `online_veroeffentlichen.py` vergleicht entpackt (Spieler-Änderungen bleiben inhaltlich). Lokaler Arbeitsstand und SL-Fassung unverändert vollständig.
+
+## V10.99 · Kleine Korrekturen
+- `v1099/apply99.py`: Überschrift „Reisejournal“, Reiterleiste auf dem Handy (≤ 560 px, Touch) zweizeilig. Danach `v1098/oeko_cache.py`.
+
+## V11.00 · Würfel und Flüstern (Stufe 6)
+- `v1100/apply1100.py <v10_99.html> <aus.html>` baut `patch1100.js` ein (nur Programm), danach `v1098/oeko_cache.py`. Schriften `v1100/fonts/` (SIL OFL 1.1) nach `gh-pages/medien/fonts/`.
+- Ablage: offene Würfe `scherbenwelt-tisch/wuerfe/<benutzer>.json`, Würfelstil `scherbenwelt-tisch/stil/<benutzer>.json`, verdeckte Würfe `<Spieler-Repo>/wuerfe/verdeckt.json` bzw. `scherbenwelt-sl/tisch/sl-verdeckt.json`, Flüstern `<Spieler-Repo>/fluestern/spieler.json` (Spieler) und `fluestern/sl.json` (SL); je Benutzer 300 Würfe, Nachrichten 90 Tage.
+- Abfrage im Takt von `steuerung/zeitplan.json`, zusätzlich beim Öffnen der Fenster. Spieler schreiben mit dem Token „eigen“ (Zugriff auf eigenes Repo und scherbenwelt-tisch).
+- Test: `v1100/t2.py` (nachgebautes GitHub mit Tisch-Repo; Spieler bernd und SL: Würfe offen/verdeckt, Flüstern, Schiffsbogen-Würfel, Würfelstil, 90-Tage-Löschung).
